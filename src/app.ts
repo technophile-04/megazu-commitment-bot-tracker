@@ -33,17 +33,21 @@ bot.command("start", (ctx) => {
   console.log("Starting the bot!!");
   if (ctx.chat.type === "private") {
     ctx.reply(
-      "Hi! I'm the Gym Photo Bot. Add me to a group to track gym photos!",
+      "Hey there, gym enthusiast! 💪 I'm the MegaLyfters Photo Bot. Add me to your group to start tracking those epic gym selfies!",
     );
   } else {
-    ctx.reply("Gym Photo Bot is ready! Send your gym photos to be counted.");
+    ctx.reply(
+      "MegaLyfters assemble! 🦸‍♂️🦸‍♀️ Your friendly neighborhood Gym Photo Bot is here to pump up your photo game!",
+    );
   }
 });
 
 bot.on("photo", async (ctx) => {
   if (ctx.chat.type === "private") {
     console.log("Hitting the bot!!");
-    await ctx.reply("Please add me to a group to track gym photos!");
+    await ctx.reply(
+      "Whoa there, lone wolf! 🐺 Add me to your pack (group) to start the gym photo party!",
+    );
     return;
   }
 
@@ -55,25 +59,25 @@ bot.on("photo", async (ctx) => {
     });
     const photoBuffer = Buffer.from(response.data, "binary");
 
-    const isGymPhoto = await analyzePhoto(photoBuffer);
+    const [isGymPhoto, roast] = await analyzeAndRoastPhoto(photoBuffer);
 
     if (isGymPhoto) {
       await updateUserCount(ctx);
-      await ctx.reply("Great job! Your gym photo has been counted.");
-    } else {
-      await ctx.reply("This doesn't seem to be a gym photo. Try again!");
     }
+    await ctx.reply(roast);
   } catch (error) {
     console.error("Error processing photo:", error);
     await ctx.reply(
-      "Sorry, there was an error processing your photo. Please try again later.",
+      "Oops! Looks like our bot pulled a muscle. 🤕 Give it a moment to recover and try again!",
     );
   }
 });
 
 bot.command("ranking", async (ctx) => {
   if (ctx.chat.type === "private") {
-    ctx.reply("Please use this command in a group!");
+    ctx.reply(
+      "Hey champ, this is a team sport! 🏆 Use this command in your MegaLyfters group!",
+    );
     return;
   }
 
@@ -84,43 +88,75 @@ bot.command("ranking", async (ctx) => {
   } catch (error) {
     console.error("Error getting ranking:", error);
     ctx.reply(
-      "Sorry, there was an error retrieving the ranking. Please try again later.",
+      "Uh-oh! Our ranking system is feeling a bit winded. 😅 Take a breather and try again in a moment!",
     );
   }
 });
 
-async function analyzePhoto(photoBuffer: Buffer): Promise<boolean> {
+async function analyzeAndRoastPhoto(
+  photoBuffer: Buffer,
+): Promise<[boolean, string]> {
   try {
     const base64Image = photoBuffer.toString("base64");
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini", // Make sure to use the correct model name
+      model: "gpt-4o-mini",
       messages: [
+        {
+          role: "system",
+          content:
+            "You're a witty gym bot analyzing photos. For gym pics, give ultra-short, snappy roasts (max 10 words). For non-gym pics, provide a short, funny callout for trying to trick the bot (max 15 words). Always be playful and cheeky, but keep it friendly.",
+        },
         {
           role: "user",
           content: [
             {
               type: "text",
-              text: "Is this a gym or fitness-related image? Please respond with only 'yes' or 'no'.",
+              text: "Is this a gym pic? If yes, give a super short, witty roast. If no, give a funny response calling out the trick attempt.",
             },
             {
               type: "image_url",
               image_url: {
                 url: `data:image/jpeg;base64,${base64Image}`,
-                detail: "low", // Using low detail to reduce token usage
+                detail: "low",
               },
             },
           ],
         },
       ],
-      max_tokens: 1, // Limiting to a single token for a yes/no response
+      max_tokens: 50,
     });
 
-    const answer = response.choices[0]?.message?.content?.toLowerCase().trim();
-    return answer === "yes";
+    const answer = response.choices[0]?.message?.content;
+    if (answer) {
+      const isGymPhoto =
+        !answer.toLowerCase().includes("not a gym") &&
+        !answer.toLowerCase().includes("isn't a gym");
+      let finalResponse: string;
+
+      if (isGymPhoto) {
+        finalResponse = `${answer} Photo counted, flex on! 💪📸`;
+      } else {
+        finalResponse = `${answer} Nice try, but no gains for you this time! 😜`;
+      }
+
+      return [isGymPhoto, finalResponse];
+    }
+    return [false, ""];
   } catch (error) {
     console.error("Error analyzing image with OpenAI:", error);
-    return false;
+    return [false, ""];
   }
+}
+
+function getRandomEncouragement(name: string): string {
+  const encouragements = [
+    `Holy protein shakes, ${name}! 🥤 Another gym selfie? You're on fire! 🔥`,
+    `Whoa there, ${name}! Save some gains for the rest of us! 💪😂`,
+    `${name}, you're making those weights cry for mercy! 🏋️‍♂️ Keep crushing it!`,
+    `Alert the gym police! 🚨 ${name} is stealing all the gains!`,
+    `${name}, your dedication is so bright, I need sunglasses! 😎 Keep shining!`,
+  ];
+  return encouragements[Math.floor(Math.random() * encouragements.length)];
 }
 
 async function updateUserCount(ctx: Context) {
@@ -156,25 +192,32 @@ async function getRanking(groupId: string): Promise<string> {
     .limit(10)
     .get();
 
-  let ranking = "Top 10 Gym Photo Posters in this group:\n";
+  let ranking = "🏆 MegaLyfters Hall of Fame 🏆\n\n";
   usersSnapshot.docs.forEach((doc, index) => {
     const data = doc.data();
-    ranking += `${index + 1}. ${data.username}: ${data.photoCount} photos\n`;
+    const emoji = getPlacementEmoji(index);
+    ranking += `${emoji} ${data.username}: ${data.photoCount} epic gym selfies\n`;
   });
 
   return (
-    ranking || "No rankings available yet. Start posting those gym photos!"
+    ranking ||
+    "No rankings yet? Time to flex those selfie muscles, MegaLyfters! 📸💪"
   );
+}
+
+function getPlacementEmoji(index: number): string {
+  const emojis = ["🥇", "🥈", "🥉", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"];
+  return emojis[index] || "🏅";
 }
 
 // Express routes (kept from previous version)
 app.get("/", (req, res) => {
-  res.send("Gym Photo Bot Server is running!");
+  res.send("MegaLyfters Gym Photo Bot is pumping iron and taking names! 💪🤳");
 });
 
 // Start server
 app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
+  console.log(`Server is flexing on port ${port} 💪`);
 });
 
 // Start bot
