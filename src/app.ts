@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import { Telegraf, Context } from "telegraf";
 import * as admin from "firebase-admin";
 import axios from "axios";
+import OpenAI from "openai";
 
 dotenv.config();
 
@@ -21,6 +22,9 @@ admin.initializeApp({
 });
 
 const db = admin.firestore();
+
+// Initialize OpenAI
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 // Initialize Telegram bot
 const bot = new Telegraf(process.env.BOT_TOKEN!);
@@ -86,8 +90,37 @@ bot.command("ranking", async (ctx) => {
 });
 
 async function analyzePhoto(photoBuffer: Buffer): Promise<boolean> {
-  // TODO: Implement actual photo analysis logic
-  return Math.random() < 0.7; // 70% chance of being a gym photo
+  try {
+    const base64Image = photoBuffer.toString("base64");
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini", // Make sure to use the correct model name
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: "Is this a gym or fitness-related image? Please respond with only 'yes' or 'no'.",
+            },
+            {
+              type: "image_url",
+              image_url: {
+                url: `data:image/jpeg;base64,${base64Image}`,
+                detail: "low", // Using low detail to reduce token usage
+              },
+            },
+          ],
+        },
+      ],
+      max_tokens: 1, // Limiting to a single token for a yes/no response
+    });
+
+    const answer = response.choices[0]?.message?.content?.toLowerCase().trim();
+    return answer === "yes";
+  } catch (error) {
+    console.error("Error analyzing image with OpenAI:", error);
+    return false;
+  }
 }
 
 async function updateUserCount(ctx: Context) {
