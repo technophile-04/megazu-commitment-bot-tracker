@@ -56,16 +56,43 @@ bot.command("start", (ctx) => {
   }
 });
 
+async function acquireLock(
+  lockRef: admin.firestore.DocumentReference,
+  maxWaitTime: number = 10000,
+): Promise<boolean> {
+  const lockExpiration = Date.now() + 10000; // Lock expires after 10 seconds
+
+  const result = await db.runTransaction(async (transaction) => {
+    const doc = await transaction.get(lockRef);
+    if (!doc.exists || doc.data()!.expiresAt < Date.now()) {
+      transaction.set(lockRef, { expiresAt: lockExpiration });
+      return true;
+    }
+    return false;
+  });
+
+  if (result) return true;
+
+  // If we couldn't acquire the lock, wait and try again
+  if (maxWaitTime > 0) {
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    return acquireLock(lockRef, maxWaitTime - 100);
+  }
+
+  return false;
+}
+
+async function releaseLock(lockRef: admin.firestore.DocumentReference) {
+  await lockRef.delete();
+}
+
+// Update the photo handling logic
 bot.on("photo", async (ctx) => {
   if (ctx.chat.type === "private") {
     console.log("Hitting the bot!!");
     await ctx.reply(
       "Whoa there, lone wolf! 🐺 Add me to your pack (group) to start the gym photo party!",
-      {
-        reply_parameters: {
-          message_id: ctx.message.message_id,
-        },
-      },
+      { reply_parameters: { message_id: ctx.message.message_id } },
     );
     return;
   }
@@ -77,98 +104,97 @@ bot.on("photo", async (ctx) => {
 
     if (!userId || !groupId) {
       await ctx.reply("Oops! Something went wrong. Try again later.", {
-        reply_parameters: {
-          message_id: ctx.message.message_id,
-        },
+        reply_parameters: { message_id: ctx.message.message_id },
       });
       return;
     }
 
-    const currentDate = getCurrentDate();
-    const userRef = db
-      .collection("groups")
-      .doc(groupId)
-      .collection("users")
-      .doc(userId);
+    const lockRef = db.collection("locks").doc(`${groupId}_${userId}`);
+    const acquired = await acquireLock(lockRef);
 
-    // Check user's daily status
-    const userDoc = await userRef.get();
-    const userData = userDoc.data() || {};
-    const dailyData = userData.dailyData || {};
-    const todayData = dailyData[currentDate] || {
-      gymPhotoUploaded: false,
-      attempts: 0,
-    };
-
-    if (todayData.gymPhotoUploaded) {
+    if (!acquired) {
       await ctx.reply(
-        `Hey ${username}! You've already uploaded a gym pic today. Come back tomorrow for more gains! 💪`,
-        {
-          reply_parameters: {
-            message_id: ctx.message.message_id,
-          },
-        },
+        "Whoa, slow down there! 🐢 We're still processing your last photo. Give us a sec!",
+        { reply_parameters: { message_id: ctx.message.message_id } },
       );
       return;
     }
 
-    if (!todayData.gymPhotoUploaded && todayData.attempts >= 5) {
-      await ctx.reply(
-        `Sorry ${username}, you've reached your daily limit of attempts. Try again tomorrow! 🌅`,
+    try {
+      const currentDate = getCurrentDate();
+      const userRef = db
+        .collection("groups")
+        .doc(groupId)
+        .collection("users")
+        .doc(userId);
+
+      // Check user's daily status
+      const userDoc = await userRef.get();
+      const userData = userDoc.data() || {};
+      const dailyData = userData.dailyData || {};
+      const todayData = dailyData[currentDate] || {
+        gymPhotoUploaded: false,
+        attempts: 0,
+      };
+
+      if (todayData.gymPhotoUploaded) {
+        await ctx.reply(
+          `Hey ${username}! You've already uploaded a gym pic today. Come back tomorrow for more gains! 💪`,
+          { reply_parameters: { message_id: ctx.message.message_id } },
+        );
+        return;
+      }
+
+      if (!todayData.gymPhotoUploaded && todayData.attempts >= 5) {
+        await ctx.reply(
+          `Sorry ${username}, you've reached your daily limit of attempts. Try again tomorrow! 🌅`,
+          { reply_parameters: { message_id: ctx.message.message_id } },
+        );
+        return;
+      }
+
+      const fileId = ctx.message.photo[ctx.message.photo.length - 1].file_id;
+      const fileLink = await ctx.telegram.getFileLink(fileId);
+      const response = await axios.get(fileLink.href, {
+        responseType: "arraybuffer",
+      });
+      const photoBuffer = Buffer.from(response.data, "binary");
+
+      const [isGymPhoto, roast] = await analyzeAndRoastPhoto(
+        photoBuffer,
+        username,
+      );
+
+      if (isGymPhoto) {
+        await updateUserCount(ctx, currentDate);
+        todayData.gymPhotoUploaded = true;
+      } else {
+        todayData.attempts += 1;
+      }
+
+      // Update the user's daily data
+      await userRef.set(
         {
-          reply_parameters: {
-            message_id: ctx.message.message_id,
+          ...userData,
+          dailyData: {
+            ...dailyData,
+            [currentDate]: todayData,
           },
         },
+        { merge: true },
       );
-      return;
+
+      await ctx.reply(roast, {
+        reply_parameters: { message_id: ctx.message.message_id },
+      });
+    } finally {
+      await releaseLock(lockRef);
     }
-
-    const fileId = ctx.message.photo[ctx.message.photo.length - 1].file_id;
-    const fileLink = await ctx.telegram.getFileLink(fileId);
-    const response = await axios.get(fileLink.href, {
-      responseType: "arraybuffer",
-    });
-    const photoBuffer = Buffer.from(response.data, "binary");
-
-    const [isGymPhoto, roast] = await analyzeAndRoastPhoto(
-      photoBuffer,
-      username,
-    );
-
-    if (isGymPhoto) {
-      await updateUserCount(ctx, currentDate);
-      todayData.gymPhotoUploaded = true;
-    } else {
-      todayData.attempts += 1;
-    }
-
-    // Update the user's daily data
-    await userRef.set(
-      {
-        ...userData,
-        dailyData: {
-          ...dailyData,
-          [currentDate]: todayData,
-        },
-      },
-      { merge: true },
-    );
-
-    await ctx.reply(roast, {
-      reply_parameters: {
-        message_id: ctx.message.message_id,
-      },
-    });
   } catch (error) {
     console.error("Error processing photo:", error);
     await ctx.reply(
       "Oops! Looks like our bot pulled a muscle. 🤕 Give it a moment to recover and try again!",
-      {
-        reply_parameters: {
-          message_id: ctx.message.message_id,
-        },
-      },
+      { reply_parameters: { message_id: ctx.message.message_id } },
     );
   }
 });
