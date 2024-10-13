@@ -33,29 +33,6 @@ function getCurrentDate(): string {
   return new Date().toISOString().split("T")[0];
 }
 
-bot.command("start", (ctx) => {
-  console.log("Starting the bot!!");
-  if (ctx.chat.type === "private") {
-    ctx.reply(
-      "Hey there, gym enthusiast! 💪 I'm the MegaLyfters Photo Bot. Add me to your group to start tracking those epic gym selfies!",
-      {
-        reply_parameters: {
-          message_id: ctx.message.message_id,
-        },
-      },
-    );
-  } else {
-    ctx.reply(
-      "MegaLyfters assemble! 🦸‍♂️🦸‍♀️ Your friendly neighborhood Gym Photo Bot is here to pump up your photo game!",
-      {
-        reply_parameters: {
-          message_id: ctx.message.message_id,
-        },
-      },
-    );
-  }
-});
-
 async function acquireLock(
   lockRef: admin.firestore.DocumentReference,
   maxWaitTime: number = 10000,
@@ -86,12 +63,34 @@ async function releaseLock(lockRef: admin.firestore.DocumentReference) {
   await lockRef.delete();
 }
 
-// Update the photo handling logic
-bot.on("photo", async (ctx) => {
+bot.command("start", (ctx) => {
+  console.log("Starting the bot!!");
   if (ctx.chat.type === "private") {
-    console.log("Hitting the bot!!");
+    ctx.reply(
+      "Hey there, iron pumper! 💪 I'm the MegaLyfters Photo Bot. Add me to your group and use the /pumped command with a photo to start showcasing your epic progress!",
+      { reply_parameters: { message_id: ctx.message.message_id } },
+    );
+  } else {
+    ctx.reply(
+      "MegaLyfters, get ready to pump it up! 🦸‍♂️🦸‍♀️ Your friendly neighborhood Gains Guardian is here! Use the /pumped command with your photos to energize your fitness journey!",
+      { reply_parameters: { message_id: ctx.message.message_id } },
+    );
+  }
+});
+
+bot.command(["pumped", "pump"], async (ctx) => {
+  if (ctx.chat.type === "private") {
     await ctx.reply(
-      "Whoa there, lone wolf! 🐺 Add me to your pack (group) to start the gym photo party!",
+      "Whoa there, solo lifter! 🐺 Add me to your crew (group) to start the ultimate pump party!",
+      { reply_parameters: { message_id: ctx.message.message_id } },
+    );
+    return;
+  }
+
+  // Check if the message contains a photo
+  if (!ctx.message?.photo || ctx.message?.photo.length === 0) {
+    await ctx.reply(
+      "Hey iron champion! 📸 Don't forget to attach a photo with the /pumped command. Let's see that pump in action!",
       { reply_parameters: { message_id: ctx.message.message_id } },
     );
     return;
@@ -99,15 +98,14 @@ bot.on("photo", async (ctx) => {
 
   try {
     const userId = ctx.from?.id.toString();
-    const username = ctx.from?.first_name || ctx.from?.username || "Gym Beast";
+    const username =
+      ctx.from?.first_name || ctx.from?.username || "Iron Pumper";
     const groupId = ctx.chat?.id.toString();
 
     if (!userId || !groupId) {
       await ctx.reply(
-        "Oops! Our gym equipment malfunctioned. 🏋️‍♂️🔧 Give it a quick rest and try again!",
-        {
-          reply_parameters: { message_id: ctx.message.message_id },
-        },
+        "Oops! Our pump-o-meter malfunctioned. 🏋️‍♂️🔧 Give it a quick rest and try flexing again!",
+        { reply_parameters: { message_id: ctx.message.message_id } },
       );
       return;
     }
@@ -117,7 +115,7 @@ bot.on("photo", async (ctx) => {
 
     if (!acquired) {
       await ctx.reply(
-        "Easy there, speed demon! 🏃‍♂️💨 Your last pic is still doing reps. Give it a moment to catch its breath!",
+        "Easy there, turbo lifter! 🏃‍♂️💨 We're still admiring your last pump. Give us a sec to catch our breath!",
         { reply_parameters: { message_id: ctx.message.message_id } },
       );
       return;
@@ -142,7 +140,7 @@ bot.on("photo", async (ctx) => {
 
       if (todayData.gymPhotoUploaded) {
         await ctx.reply(
-          `Whoa, ${username}! 🏆 You've already crushed your daily gym pic goal. Save some gains for tomorrow, champ!`,
+          `Whoa, ${username}! 🏆 You've already maxed out your daily pump showcase. Save some amazement for tomorrow, you beast!`,
           { reply_parameters: { message_id: ctx.message.message_id } },
         );
         return;
@@ -150,7 +148,7 @@ bot.on("photo", async (ctx) => {
 
       if (!todayData.gymPhotoUploaded && todayData.attempts >= 5) {
         await ctx.reply(
-          `Hold up, ${username}! 🛑 You've maxed out your daily photo reps. Time to rest those selfie muscles and come back stronger tomorrow! 💪😴`,
+          `Hold up, ${username}! 🛑 You've hit your daily pump limit. Time to rest those muscles and come back more pumped tomorrow! 💪😴`,
           { reply_parameters: { message_id: ctx.message.message_id } },
         );
         return;
@@ -194,9 +192,9 @@ bot.on("photo", async (ctx) => {
       await releaseLock(lockRef);
     }
   } catch (error) {
-    console.error("Error processing photo:", error);
+    console.error("Error processing pump:", error);
     await ctx.reply(
-      "Oof! 😅 Looks like our bot pulled a digital muscle. Let's take a quick water break and try that again!",
+      "Oof! 😅 Looks like our bot's pump deflated a bit. Let's take a quick pre-workout break and try that again!",
       { reply_parameters: { message_id: ctx.message.message_id } },
     );
   }
@@ -205,12 +203,8 @@ bot.on("photo", async (ctx) => {
 bot.command("ranking", async (ctx) => {
   if (ctx.chat.type === "private") {
     ctx.reply(
-      "Hey champ, this is a team sport! 🏆 Use this command in your MegaLyfters group!",
-      {
-        reply_parameters: {
-          message_id: ctx.message.message_id,
-        },
-      },
+      "Hey pump master, this is a team sport! 🏆 Use this command in your MegaLyfters group to see who's the ultimate pump champion!",
+      { reply_parameters: { message_id: ctx.message.message_id } },
     );
     return;
   }
@@ -222,12 +216,8 @@ bot.command("ranking", async (ctx) => {
   } catch (error) {
     console.error("Error getting ranking:", error);
     ctx.reply(
-      "Uh-oh! Our ranking system is feeling a bit winded. 😅 Take a breather and try again in a moment!",
-      {
-        reply_parameters: {
-          message_id: ctx.message.message_id,
-        },
-      },
+      "Uh-oh! Our pump-o-meter is feeling the burn. 😅 Take a breather and try checking the rankings again in a moment!",
+      { reply_parameters: { message_id: ctx.message.message_id } },
     );
   }
 });
@@ -273,7 +263,7 @@ async function analyzeAndRoastPhoto(
       let finalResponse: string;
 
       if (isGymPhoto) {
-        finalResponse = `Hey ${username}! ${comment} Photo counted, flex on! 💪📸`;
+        finalResponse = `Hey ${username}! ${comment} Pump counted, keep crushing it! 💪📸`;
       } else {
         finalResponse = `Nice try, ${username}! ${comment} No gains for you this time! 😜`;
       }
@@ -334,16 +324,16 @@ async function getRanking(groupId: string): Promise<string> {
       .limit(10)
       .get();
 
-    let ranking = "🏆 MegaLyfters Hall of Fame 🏆\n\n";
+    let ranking = "🏆 MegaLyfters Pump Hall of Fame 🏆\n\n";
     usersSnapshot.docs.forEach((doc, index) => {
       const data = doc.data();
       const emoji = getPlacementEmoji(index);
-      ranking += `${emoji} ${data.username}: ${data.photoCount} epic gym selfies\n`;
+      ranking += `${emoji} ${data.username}: ${data.photoCount} epic pumps\n`;
     });
 
     return (
       ranking ||
-      "No rankings yet? Time to flex those selfie muscles, MegaLyfters! 📸💪"
+      "No pumps yet? Time to inflate those muscles, MegaLyfters! 📸💪"
     );
   } catch (error) {
     console.error("Error getting ranking:", error);
