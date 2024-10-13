@@ -66,14 +66,14 @@ async function releaseLock(lockRef: admin.firestore.DocumentReference) {
 
 bot.command("start", (ctx) => {
   console.log("Starting the bot!!");
-  if (ctx.chat.type === "private") {
+  if (ctx.chat?.type === "private") {
     ctx.reply(
-      "Hey there, iron pumper! 💪 I'm the MegaLyfters Photo Bot. Add me to your group and use the /pumped command with a photo to start showcasing your epic progress!",
+      "Hey there, iron pumper! 💪 I'm the MegaLyfters Photo Bot. Add me to your group and share your progress pics! Here's how:\n\n1️⃣ Take a photo of your workout or gains\n2️⃣ Add '/pumped' in the caption\n3️⃣ Send it to the group\n\nLet's showcase those epic gains together! 💪📸",
       { reply_parameters: { message_id: ctx.message.message_id } },
     );
   } else {
     ctx.reply(
-      "MegaLyfters, get ready to pump it up! 🦸‍♂️🦸‍♀️ Your friendly neighborhood Gains Guardian is here! Use the /pumped command with your photos to energize your fitness journey!",
+      "MegaLyfters, get ready to pump it up! 🦸‍♂️🦸‍♀️ Your friendly neighborhood Gains Guardian is here!\n\nTo show off your progress:\n1️⃣ Snap a pic of your workout or gains\n2️⃣ Include '/pumped' in the caption\n3️⃣ Share it with the group\n\n",
       { reply_parameters: { message_id: ctx.message.message_id } },
     );
   }
