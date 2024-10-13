@@ -4,6 +4,7 @@ import { Telegraf, Context } from "telegraf";
 import * as admin from "firebase-admin";
 import axios from "axios";
 import OpenAI from "openai";
+import { Message } from "telegraf/typings/core/types/typegram";
 
 dotenv.config();
 
@@ -78,20 +79,21 @@ bot.command("start", (ctx) => {
   }
 });
 
-bot.command(["pumped", "pump"], async (ctx) => {
-  if (ctx.chat.type === "private") {
+bot.command(["pumped", "pump"], async (ctx: Context) => {
+  if (ctx.chat?.type === "private") {
     await ctx.reply(
       "Whoa there, solo lifter! 🐺 Add me to your crew (group) to start the ultimate pump party!",
-      { reply_parameters: { message_id: ctx.message.message_id } },
+      { reply_parameters: { message_id: ctx.message!.message_id } },
     );
     return;
   }
 
   // Check if the message contains a photo
-  if (!ctx.message?.photo || ctx.message?.photo.length === 0) {
+  const msg = ctx.message as Message.PhotoMessage;
+  if (!msg.photo || msg.photo.length === 0) {
     await ctx.reply(
       "Hey iron champion! 📸 Don't forget to attach a photo with the /pumped command. Let's see that pump in action!",
-      { reply_parameters: { message_id: ctx.message.message_id } },
+      { reply_parameters: { message_id: ctx.message!.message_id } },
     );
     return;
   }
@@ -105,7 +107,7 @@ bot.command(["pumped", "pump"], async (ctx) => {
     if (!userId || !groupId) {
       await ctx.reply(
         "Oops! Our pump-o-meter malfunctioned. 🏋️‍♂️🔧 Give it a quick rest and try flexing again!",
-        { reply_parameters: { message_id: ctx.message.message_id } },
+        { reply_parameters: { message_id: ctx.message!.message_id } },
       );
       return;
     }
@@ -116,7 +118,7 @@ bot.command(["pumped", "pump"], async (ctx) => {
     if (!acquired) {
       await ctx.reply(
         "Easy there, turbo lifter! 🏃‍♂️💨 We're still admiring your last pump. Give us a sec to catch our breath!",
-        { reply_parameters: { message_id: ctx.message.message_id } },
+        { reply_parameters: { message_id: ctx.message!.message_id } },
       );
       return;
     }
@@ -141,7 +143,7 @@ bot.command(["pumped", "pump"], async (ctx) => {
       if (todayData.gymPhotoUploaded) {
         await ctx.reply(
           `Whoa, ${username}! 🏆 You've already maxed out your daily pump showcase. Save some amazement for tomorrow, you beast!`,
-          { reply_parameters: { message_id: ctx.message.message_id } },
+          { reply_parameters: { message_id: ctx.message!.message_id } },
         );
         return;
       }
@@ -149,12 +151,12 @@ bot.command(["pumped", "pump"], async (ctx) => {
       if (!todayData.gymPhotoUploaded && todayData.attempts >= 5) {
         await ctx.reply(
           `Hold up, ${username}! 🛑 You've hit your daily pump limit. Time to rest those muscles and come back more pumped tomorrow! 💪😴`,
-          { reply_parameters: { message_id: ctx.message.message_id } },
+          { reply_parameters: { message_id: ctx.message!.message_id } },
         );
         return;
       }
 
-      const fileId = ctx.message.photo[ctx.message.photo.length - 1].file_id;
+      const fileId = msg.photo[msg.photo.length - 1].file_id;
       const fileLink = await ctx.telegram.getFileLink(fileId);
       const response = await axios.get(fileLink.href, {
         responseType: "arraybuffer",
@@ -186,7 +188,7 @@ bot.command(["pumped", "pump"], async (ctx) => {
       );
 
       await ctx.reply(roast, {
-        reply_parameters: { message_id: ctx.message.message_id },
+        reply_parameters: { message_id: ctx.message!.message_id },
       });
     } finally {
       await releaseLock(lockRef);
@@ -195,7 +197,7 @@ bot.command(["pumped", "pump"], async (ctx) => {
     console.error("Error processing pump:", error);
     await ctx.reply(
       "Oof! 😅 Looks like our bot's pump deflated a bit. Let's take a quick pre-workout break and try that again!",
-      { reply_parameters: { message_id: ctx.message.message_id } },
+      { reply_parameters: { message_id: ctx.message!.message_id } },
     );
   }
 });
