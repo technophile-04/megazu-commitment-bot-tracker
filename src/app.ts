@@ -59,7 +59,11 @@ bot.on("photo", async (ctx) => {
     });
     const photoBuffer = Buffer.from(response.data, "binary");
 
-    const [isGymPhoto, roast] = await analyzeAndRoastPhoto(photoBuffer);
+    const username = ctx.from?.first_name || ctx.from?.username || "Gym Beast";
+    const [isGymPhoto, roast] = await analyzeAndRoastPhoto(
+      photoBuffer,
+      username,
+    );
 
     if (isGymPhoto) {
       await updateUserCount(ctx);
@@ -95,6 +99,7 @@ bot.command("ranking", async (ctx) => {
 
 async function analyzeAndRoastPhoto(
   photoBuffer: Buffer,
+  username: string,
 ): Promise<[boolean, string]> {
   try {
     const base64Image = photoBuffer.toString("base64");
@@ -104,14 +109,14 @@ async function analyzeAndRoastPhoto(
         {
           role: "system",
           content:
-            "You're a witty gym bot analyzing photos. For gym pics, give ultra-short, snappy roasts (max 10 words). For non-gym pics, provide a short, funny callout for trying to trick the bot (max 15 words). Always be playful and cheeky, but keep it friendly.",
+            "You're a witty gym bot analyzing photos. For gym pics, start with 'GYM PIC:' then give an ultra-short, snappy roast (max 10 words). For non-gym pics, start with 'NOT GYM:' then provide a short, funny callout for trying to trick the bot (max 15 words). Always be playful and cheeky, but keep it friendly.",
         },
         {
           role: "user",
           content: [
             {
               type: "text",
-              text: "Is this a gym pic? If yes, give a super short, witty roast. If no, give a funny response calling out the trick attempt.",
+              text: "Analyze this image. Is it a gym pic? Respond with the appropriate prefix (GYM PIC: or NOT GYM:) followed by your witty comment.",
             },
             {
               type: "image_url",
@@ -128,15 +133,14 @@ async function analyzeAndRoastPhoto(
 
     const answer = response.choices[0]?.message?.content;
     if (answer) {
-      const isGymPhoto =
-        !answer.toLowerCase().includes("not a gym") &&
-        !answer.toLowerCase().includes("isn't a gym");
+      const isGymPhoto = answer.toUpperCase().startsWith("GYM PIC:");
+      const comment = answer.substring(answer.indexOf(":") + 1).trim();
       let finalResponse: string;
 
       if (isGymPhoto) {
-        finalResponse = `${answer} Photo counted, flex on! 💪📸`;
+        finalResponse = `Hey ${username}! ${comment} Photo counted, flex on! 💪📸`;
       } else {
-        finalResponse = `${answer} Nice try, but no gains for you this time! 😜`;
+        finalResponse = `Nice try, ${username}! ${comment} No gains for you this time! 😜`;
       }
 
       return [isGymPhoto, finalResponse];
@@ -146,17 +150,6 @@ async function analyzeAndRoastPhoto(
     console.error("Error analyzing image with OpenAI:", error);
     return [false, ""];
   }
-}
-
-function getRandomEncouragement(name: string): string {
-  const encouragements = [
-    `Holy protein shakes, ${name}! 🥤 Another gym selfie? You're on fire! 🔥`,
-    `Whoa there, ${name}! Save some gains for the rest of us! 💪😂`,
-    `${name}, you're making those weights cry for mercy! 🏋️‍♂️ Keep crushing it!`,
-    `Alert the gym police! 🚨 ${name} is stealing all the gains!`,
-    `${name}, your dedication is so bright, I need sunglasses! 😎 Keep shining!`,
-  ];
-  return encouragements[Math.floor(Math.random() * encouragements.length)];
 }
 
 async function updateUserCount(ctx: Context) {
@@ -211,7 +204,7 @@ function getPlacementEmoji(index: number): string {
 }
 
 // Express routes (kept from previous version)
-app.get("/", (req, res) => {
+app.get("/", (_req, res) => {
   res.send("MegaLyfters Gym Photo Bot is pumping iron and taking names! 💪🤳");
 });
 
