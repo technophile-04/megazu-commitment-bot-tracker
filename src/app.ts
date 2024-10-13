@@ -103,9 +103,12 @@ bot.on("photo", async (ctx) => {
     const groupId = ctx.chat?.id.toString();
 
     if (!userId || !groupId) {
-      await ctx.reply("Oops! Something went wrong. Try again later.", {
-        reply_parameters: { message_id: ctx.message.message_id },
-      });
+      await ctx.reply(
+        "Oops! Our gym equipment malfunctioned. 🏋️‍♂️🔧 Give it a quick rest and try again!",
+        {
+          reply_parameters: { message_id: ctx.message.message_id },
+        },
+      );
       return;
     }
 
@@ -114,7 +117,7 @@ bot.on("photo", async (ctx) => {
 
     if (!acquired) {
       await ctx.reply(
-        "Whoa, slow down there! 🐢 We're still processing your last photo. Give us a sec!",
+        "Easy there, speed demon! 🏃‍♂️💨 Your last pic is still doing reps. Give it a moment to catch its breath!",
         { reply_parameters: { message_id: ctx.message.message_id } },
       );
       return;
@@ -139,7 +142,7 @@ bot.on("photo", async (ctx) => {
 
       if (todayData.gymPhotoUploaded) {
         await ctx.reply(
-          `Hey ${username}! You've already uploaded a gym pic today. Come back tomorrow for more gains! 💪`,
+          `Whoa, ${username}! 🏆 You've already crushed your daily gym pic goal. Save some gains for tomorrow, champ!`,
           { reply_parameters: { message_id: ctx.message.message_id } },
         );
         return;
@@ -147,7 +150,7 @@ bot.on("photo", async (ctx) => {
 
       if (!todayData.gymPhotoUploaded && todayData.attempts >= 5) {
         await ctx.reply(
-          `Sorry ${username}, you've reached your daily limit of attempts. Try again tomorrow! 🌅`,
+          `Hold up, ${username}! 🛑 You've maxed out your daily photo reps. Time to rest those selfie muscles and come back stronger tomorrow! 💪😴`,
           { reply_parameters: { message_id: ctx.message.message_id } },
         );
         return;
@@ -193,7 +196,7 @@ bot.on("photo", async (ctx) => {
   } catch (error) {
     console.error("Error processing photo:", error);
     await ctx.reply(
-      "Oops! Looks like our bot pulled a muscle. 🤕 Give it a moment to recover and try again!",
+      "Oof! 😅 Looks like our bot pulled a digital muscle. Let's take a quick water break and try that again!",
       { reply_parameters: { message_id: ctx.message.message_id } },
     );
   }
@@ -322,25 +325,30 @@ async function updateUserCount(ctx: Context, currentDate: string) {
 }
 
 async function getRanking(groupId: string): Promise<string> {
-  const usersSnapshot = await db
-    .collection("groups")
-    .doc(groupId)
-    .collection("users")
-    .orderBy("photoCount", "desc")
-    .limit(10)
-    .get();
+  try {
+    const usersSnapshot = await db
+      .collection("groups")
+      .doc(groupId)
+      .collection("users")
+      .orderBy("photoCount", "desc")
+      .limit(10)
+      .get();
 
-  let ranking = "🏆 MegaLyfters Hall of Fame 🏆\n\n";
-  usersSnapshot.docs.forEach((doc, index) => {
-    const data = doc.data();
-    const emoji = getPlacementEmoji(index);
-    ranking += `${emoji} ${data.username}: ${data.photoCount} epic gym selfies\n`;
-  });
+    let ranking = "🏆 MegaLyfters Hall of Fame 🏆\n\n";
+    usersSnapshot.docs.forEach((doc, index) => {
+      const data = doc.data();
+      const emoji = getPlacementEmoji(index);
+      ranking += `${emoji} ${data.username}: ${data.photoCount} epic gym selfies\n`;
+    });
 
-  return (
-    ranking ||
-    "No rankings yet? Time to flex those selfie muscles, MegaLyfters! 📸💪"
-  );
+    return (
+      ranking ||
+      "No rankings yet? Time to flex those selfie muscles, MegaLyfters! 📸💪"
+    );
+  } catch (error) {
+    console.error("Error getting ranking:", error);
+    return "Oops! Our ranking board is doing extra reps. 🏋️‍♀️ Give it a moment to cool down and try again!";
+  }
 }
 
 function getPlacementEmoji(index: number): string {
@@ -348,7 +356,7 @@ function getPlacementEmoji(index: number): string {
   return emojis[index] || "🏅";
 }
 
-// Express routes (kept from previous version)
+// Express routes
 app.get("/", (_req, res) => {
   res.send("MegaLyfters Gym Photo Bot is pumping iron and taking names! 💪🤳");
 });
