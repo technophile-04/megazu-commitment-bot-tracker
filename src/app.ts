@@ -29,15 +29,29 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 // Initialize Telegram bot
 const bot = new Telegraf(process.env.BOT_TOKEN!);
 
+function getCurrentDate(): string {
+  return new Date().toISOString().split("T")[0];
+}
+
 bot.command("start", (ctx) => {
   console.log("Starting the bot!!");
   if (ctx.chat.type === "private") {
     ctx.reply(
       "Hey there, gym enthusiast! 💪 I'm the MegaLyfters Photo Bot. Add me to your group to start tracking those epic gym selfies!",
+      {
+        reply_parameters: {
+          message_id: ctx.message.message_id,
+        },
+      },
     );
   } else {
     ctx.reply(
       "MegaLyfters assemble! 🦸‍♂️🦸‍♀️ Your friendly neighborhood Gym Photo Bot is here to pump up your photo game!",
+      {
+        reply_parameters: {
+          message_id: ctx.message.message_id,
+        },
+      },
     );
   }
 });
@@ -47,11 +61,69 @@ bot.on("photo", async (ctx) => {
     console.log("Hitting the bot!!");
     await ctx.reply(
       "Whoa there, lone wolf! 🐺 Add me to your pack (group) to start the gym photo party!",
+      {
+        reply_parameters: {
+          message_id: ctx.message.message_id,
+        },
+      },
     );
     return;
   }
 
   try {
+    const userId = ctx.from?.id.toString();
+    const username = ctx.from?.first_name || ctx.from?.username || "Gym Beast";
+    const groupId = ctx.chat?.id.toString();
+
+    if (!userId || !groupId) {
+      await ctx.reply("Oops! Something went wrong. Try again later.", {
+        reply_parameters: {
+          message_id: ctx.message.message_id,
+        },
+      });
+      return;
+    }
+
+    const currentDate = getCurrentDate();
+    const userRef = db
+      .collection("groups")
+      .doc(groupId)
+      .collection("users")
+      .doc(userId);
+
+    // Check user's daily status
+    const userDoc = await userRef.get();
+    const userData = userDoc.data() || {};
+    const dailyData = userData.dailyData || {};
+    const todayData = dailyData[currentDate] || {
+      gymPhotoUploaded: false,
+      attempts: 0,
+    };
+
+    if (todayData.gymPhotoUploaded) {
+      await ctx.reply(
+        `Hey ${username}! You've already uploaded a gym pic today. Come back tomorrow for more gains! 💪`,
+        {
+          reply_parameters: {
+            message_id: ctx.message.message_id,
+          },
+        },
+      );
+      return;
+    }
+
+    if (!todayData.gymPhotoUploaded && todayData.attempts >= 5) {
+      await ctx.reply(
+        `Sorry ${username}, you've reached your daily limit of attempts. Try again tomorrow! 🌅`,
+        {
+          reply_parameters: {
+            message_id: ctx.message.message_id,
+          },
+        },
+      );
+      return;
+    }
+
     const fileId = ctx.message.photo[ctx.message.photo.length - 1].file_id;
     const fileLink = await ctx.telegram.getFileLink(fileId);
     const response = await axios.get(fileLink.href, {
@@ -59,20 +131,44 @@ bot.on("photo", async (ctx) => {
     });
     const photoBuffer = Buffer.from(response.data, "binary");
 
-    const username = ctx.from?.first_name || ctx.from?.username || "Gym Beast";
     const [isGymPhoto, roast] = await analyzeAndRoastPhoto(
       photoBuffer,
       username,
     );
 
     if (isGymPhoto) {
-      await updateUserCount(ctx);
+      await updateUserCount(ctx, currentDate);
+      todayData.gymPhotoUploaded = true;
+    } else {
+      todayData.attempts += 1;
     }
-    await ctx.reply(roast);
+
+    // Update the user's daily data
+    await userRef.set(
+      {
+        ...userData,
+        dailyData: {
+          ...dailyData,
+          [currentDate]: todayData,
+        },
+      },
+      { merge: true },
+    );
+
+    await ctx.reply(roast, {
+      reply_parameters: {
+        message_id: ctx.message.message_id,
+      },
+    });
   } catch (error) {
     console.error("Error processing photo:", error);
     await ctx.reply(
       "Oops! Looks like our bot pulled a muscle. 🤕 Give it a moment to recover and try again!",
+      {
+        reply_parameters: {
+          message_id: ctx.message.message_id,
+        },
+      },
     );
   }
 });
@@ -81,6 +177,11 @@ bot.command("ranking", async (ctx) => {
   if (ctx.chat.type === "private") {
     ctx.reply(
       "Hey champ, this is a team sport! 🏆 Use this command in your MegaLyfters group!",
+      {
+        reply_parameters: {
+          message_id: ctx.message.message_id,
+        },
+      },
     );
     return;
   }
@@ -93,6 +194,11 @@ bot.command("ranking", async (ctx) => {
     console.error("Error getting ranking:", error);
     ctx.reply(
       "Uh-oh! Our ranking system is feeling a bit winded. 😅 Take a breather and try again in a moment!",
+      {
+        reply_parameters: {
+          message_id: ctx.message.message_id,
+        },
+      },
     );
   }
 });
@@ -152,7 +258,7 @@ async function analyzeAndRoastPhoto(
   }
 }
 
-async function updateUserCount(ctx: Context) {
+async function updateUserCount(ctx: Context, currentDate: string) {
   const userId = ctx.from?.id.toString();
   const username = ctx.from?.username || ctx.from?.first_name || "Anonymous";
   const groupId = ctx.chat?.id.toString();
@@ -167,12 +273,25 @@ async function updateUserCount(ctx: Context) {
 
   await db.runTransaction(async (transaction) => {
     const userDoc = await transaction.get(userRef);
-    if (userDoc.exists) {
-      const newCount = (userDoc.data()?.photoCount || 0) + 1;
-      transaction.update(userRef, { photoCount: newCount, username });
-    } else {
-      transaction.set(userRef, { photoCount: 1, username });
-    }
+    const userData = userDoc.data() || {};
+    const newCount = (userData.photoCount || 0) + 1;
+    const dailyData = userData.dailyData || {};
+
+    transaction.set(
+      userRef,
+      {
+        photoCount: newCount,
+        username,
+        dailyData: {
+          ...dailyData,
+          [currentDate]: {
+            gymPhotoUploaded: true,
+            attempts: (dailyData[currentDate]?.attempts || 0) + 1,
+          },
+        },
+      },
+      { merge: true },
+    );
   });
 }
 
