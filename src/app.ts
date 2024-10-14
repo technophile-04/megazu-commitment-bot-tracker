@@ -8,14 +8,15 @@ import {
   handleGetShippingRanking,
 } from "./actions";
 
-initializeFirebase();
-
 dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 3000;
 
 app.use(express.json());
+
+// Initialize Firebase
+initializeFirebase();
 
 // Initialize Telegram bot
 const bot = new Telegraf(process.env.BOT_TOKEN!);
@@ -36,24 +37,36 @@ bot.command("start", (ctx) => {
 });
 
 bot.on("photo", handlePhotoSent);
-
 bot.command("lifters", handleGetRanking);
-
 bot.command("shippers", handleGetShippingRanking);
 
 // Express routes
 app.get("/", (_req, res) => {
-  res.send("MegaLyfters Gym Photo Bot is pumping iron and taking names! 💪🤳");
+  res.send("MegaZu Activity Tracker is pumping iron and shipping code! 💪🚢");
 });
 
-// Start server
-app.listen(port, () => {
-  console.log(`Server is flexing on port ${port} 💪`);
-});
+// Start server and bot
+async function startApp() {
+  try {
+    // Ensure Firebase is initialized
+    initializeFirebase();
 
-// Start bot
-bot.launch();
+    // Start Express server
+    app.listen(port, () => {
+      console.log(`Server is flexing on port ${port} 💪`);
+    });
 
-// Enable graceful stop
-process.once("SIGINT", () => bot.stop("SIGINT"));
-process.once("SIGTERM", () => bot.stop("SIGTERM"));
+    // Start Telegram bot
+    await bot.launch();
+    console.log("MegaZu bot is online and ready to track activities!");
+
+    // Enable graceful stop
+    process.once("SIGINT", () => bot.stop("SIGINT"));
+    process.once("SIGTERM", () => bot.stop("SIGTERM"));
+  } catch (error) {
+    console.error("Failed to start the application:", error);
+    process.exit(1);
+  }
+}
+
+startApp();
