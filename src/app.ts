@@ -12,7 +12,6 @@ dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 3000;
-
 app.use(express.json());
 
 // Initialize Firebase
@@ -56,14 +55,6 @@ app.get("/", (_req, res) => {
 // Start server and bot
 async function startApp() {
   try {
-    admin.initializeApp({
-      credential: admin.credential.cert({
-        projectId: process.env.FIREBASE_PROJECT_ID,
-        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-        privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
-      }),
-    });
-
     // Start Express server
     app.listen(port, () => {
       console.log(`Server is flexing on port ${port} 💪`);
