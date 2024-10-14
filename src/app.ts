@@ -8,14 +8,14 @@ import {
   handleGetShippingRanking,
 } from "./actions";
 
+initializeFirebase();
+
 dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 3000;
 
 app.use(express.json());
-
-initializeFirebase();
 
 // Initialize Telegram bot
 const bot = new Telegraf(process.env.BOT_TOKEN!);
