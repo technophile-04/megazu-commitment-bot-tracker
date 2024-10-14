@@ -2,22 +2,31 @@ import { Context, Telegraf } from "telegraf";
 import { Message, Update } from "telegraf/typings/core/types/typegram";
 import { acquireLock, releaseLock, db } from "../firebase";
 import axios from "axios";
-import { getRanking, updateUserCount } from "../firebase/queries";
-import { analyzeAndRoastPhoto } from "../openai";
+import {
+  getRanking,
+  getShippingRanking,
+  updateUserCount,
+} from "../firebase/queries";
+import {
+  analyzeAndRoastGymPhoto,
+  analyzeAndRoastShippingPhoto,
+} from "../openai";
 import { getCurrentDate } from "../utils";
 
 export const handlePhotoSent = async (ctx: Context) => {
   const msg = ctx.message as Message.PhotoMessage;
 
-  // Check if the caption contains "/pumped" or "/pump"
-  if (!msg.caption || !/\/pumped|\/pump/i.test(msg.caption)) {
-    // If not a pump command, ignore this photo
+  // Check if the caption contains "/pumped", "/pump", or "/shipped"
+  if (!msg.caption || !/\/pumped|\/pump|\/shipped/i.test(msg.caption)) {
+    // If not a valid command, ignore this photo
     return;
   }
 
+  const isShipping = /\/shipped/i.test(msg.caption);
+
   if (ctx.chat?.type === "private") {
     await ctx.reply(
-      "Whoa there, solo lifter! 🐺 Add me to your crew (group) to start the ultimate pump party!",
+      `Whoa there, solo ${isShipping ? "coder" : "athlete"}! 🐺 Add me to your crew (group) to start the ultimate ${isShipping ? "shipping" : "fitness"} party!`,
       { reply_parameters: { message_id: msg.message_id } },
     );
     return;
@@ -26,12 +35,14 @@ export const handlePhotoSent = async (ctx: Context) => {
   try {
     const userId = ctx.from?.id.toString();
     const username =
-      ctx.from?.first_name || ctx.from?.username || "Iron Pumper";
+      ctx.from?.first_name ||
+      ctx.from?.username ||
+      (isShipping ? "Code Shipper" : "Fitness Enthusiast");
     const groupId = ctx.chat?.id.toString();
 
     if (!userId || !groupId) {
       await ctx.reply(
-        "Oops! Our pump-o-meter malfunctioned. 🏋️‍♂️🔧 Give it a quick rest and try flexing again!",
+        `Oops! Our ${isShipping ? "ship-o-meter" : "fit-o-meter"} malfunctioned. 🔧 Give it a quick rest and try ${isShipping ? "shipping" : "flexing"} again!`,
         { reply_parameters: { message_id: msg.message_id } },
       );
       return;
@@ -42,7 +53,7 @@ export const handlePhotoSent = async (ctx: Context) => {
 
     if (!acquired) {
       await ctx.reply(
-        "Easy there, turbo lifter! 🏃‍♂️💨 We're still admiring your last pump. Give us a sec to catch our breath!",
+        `Easy there, turbo ${isShipping ? "shipper" : "athlete"}! 🏃‍♂️💨 We're still processing your last ${isShipping ? "commit" : "rep"}. Give us a sec to catch our breath!`,
         { reply_parameters: { message_id: msg.message_id } },
       );
       return;
@@ -62,20 +73,24 @@ export const handlePhotoSent = async (ctx: Context) => {
       const dailyData = userData.dailyData || {};
       const todayData = dailyData[currentDate] || {
         gymPhotoUploaded: false,
+        shippingPhotoUploaded: false,
         attempts: 0,
       };
 
-      if (todayData.gymPhotoUploaded) {
+      if (
+        (isShipping && todayData.shippingPhotoUploaded) ||
+        (!isShipping && todayData.gymPhotoUploaded)
+      ) {
         await ctx.reply(
-          `Whoa, ${username}! 🏆 You've already maxed out your daily pump showcase. Save some amazement for tomorrow, you beast!`,
+          `Whoa, ${username}! 🏆 You've already logged your daily ${isShipping ? "shipping" : "fitness"} activity. Save some amazement for tomorrow, you beast!`,
           { reply_parameters: { message_id: msg.message_id } },
         );
         return;
       }
 
-      if (!todayData.gymPhotoUploaded && todayData.attempts >= 5) {
+      if (todayData.attempts >= 5) {
         await ctx.reply(
-          `Hold up, ${username}! 🛑 You've hit your daily pump limit. Time to rest those muscles and come back more pumped tomorrow! 💪😴`,
+          `Hold up, ${username}! 🛑 You've hit your daily attempt limit. Time to rest those ${isShipping ? "fingers" : "muscles"} and come back more ${isShipping ? "productive" : "energized"} tomorrow! ${isShipping ? "⌨️😴" : "💪😴"}`,
           { reply_parameters: { message_id: msg.message_id } },
         );
         return;
@@ -88,29 +103,28 @@ export const handlePhotoSent = async (ctx: Context) => {
       });
       const photoBuffer = Buffer.from(response.data, "binary");
 
-      const [isGymPhoto, roast] = await analyzeAndRoastPhoto(
-        photoBuffer,
-        username,
-      );
+      const [isValidPhoto, roast] = isShipping
+        ? await analyzeAndRoastShippingPhoto(photoBuffer, username)
+        : await analyzeAndRoastGymPhoto(photoBuffer, username);
 
-      if (isGymPhoto) {
-        await updateUserCount(ctx, currentDate);
-        todayData.gymPhotoUploaded = true;
+      if (isValidPhoto) {
+        await updateUserCount(ctx, currentDate, isShipping);
+        // No need to update todayData here, as it's handled in updateUserCount
       } else {
-        todayData.attempts += 1;
-      }
-
-      // Update the user's daily data
-      await userRef.set(
-        {
-          ...userData,
-          dailyData: {
-            ...dailyData,
-            [currentDate]: todayData,
+        // Only increment attempts for invalid photos
+        await userRef.set(
+          {
+            dailyData: {
+              ...dailyData,
+              [currentDate]: {
+                ...todayData,
+                attempts: todayData.attempts + 1,
+              },
+            },
           },
-        },
-        { merge: true },
-      );
+          { merge: true },
+        );
+      }
 
       await ctx.reply(roast, {
         reply_parameters: { message_id: msg.message_id },
@@ -119,9 +133,12 @@ export const handlePhotoSent = async (ctx: Context) => {
       await releaseLock(lockRef);
     }
   } catch (error) {
-    console.error("Error processing pump:", error);
+    console.error(
+      `Error processing ${isShipping ? "shipping" : "fitness"} activity:`,
+      error,
+    );
     await ctx.reply(
-      "Oof! 😅 Looks like our bot's pump deflated a bit. Let's take a quick pre-workout break and try that again!",
+      `Oof! 😅 Looks like our bot's ${isShipping ? "code" : "workout"} routine hit a snag. Let's take a quick break and try that again!`,
       { reply_parameters: { message_id: msg.message_id } },
     );
   }
@@ -132,7 +149,7 @@ export const handleGetRanking: Parameters<
 >[1] = async (ctx) => {
   if (ctx.chat.type === "private") {
     ctx.reply(
-      "Hey pump master, this is a team sport! 🏆 Use this command in your MegaLyfters group to see who's the ultimate pump champion!",
+      "Hey fitness champion, this is a team sport! 🏆 Use this command in your MegaZu group to see who's the ultimate fitness guru!",
       { reply_parameters: { message_id: ctx.message.message_id } },
     );
     return;
@@ -143,9 +160,33 @@ export const handleGetRanking: Parameters<
     const ranking = await getRanking(groupId);
     ctx.reply(ranking);
   } catch (error) {
-    console.error("Error getting ranking:", error);
+    console.error("Error getting fitness ranking:", error);
     ctx.reply(
-      "Uh-oh! Our pump-o-meter is feeling the burn. 😅 Take a breather and try checking the rankings again in a moment!",
+      "Uh-oh! Our fit-o-meter is feeling the burn. 😅 Take a breather and try checking the rankings again in a moment!",
+      { reply_parameters: { message_id: ctx.message.message_id } },
+    );
+  }
+};
+
+export const handleGetShippingRanking: Parameters<
+  Telegraf<Context<Update>>["command"]
+>[1] = async (ctx) => {
+  if (ctx.chat.type === "private") {
+    ctx.reply(
+      "Hey code shipper, this is a team effort! 🚢 Use this command in your MegaZu group to see who's the ultimate shipping champion!",
+      { reply_parameters: { message_id: ctx.message.message_id } },
+    );
+    return;
+  }
+
+  try {
+    const groupId = ctx.chat.id.toString();
+    const ranking = await getShippingRanking(groupId);
+    ctx.reply(ranking);
+  } catch (error) {
+    console.error("Error getting shipping ranking:", error);
+    ctx.reply(
+      "Uh-oh! Our ship-o-meter is experiencing some turbulence. 😅 Take a moment to debug and try checking the rankings again soon!",
       { reply_parameters: { message_id: ctx.message.message_id } },
     );
   }

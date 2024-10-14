@@ -2,7 +2,11 @@ import express from "express";
 import dotenv from "dotenv";
 import { Telegraf } from "telegraf";
 import { initializeFirebase } from "./firebase";
-import { handlePhotoSent, handleGetRanking } from "./actions";
+import {
+  handlePhotoSent,
+  handleGetRanking,
+  handleGetShippingRanking,
+} from "./actions";
 
 dotenv.config();
 
@@ -20,12 +24,12 @@ bot.command("start", (ctx) => {
   console.log("Starting the bot!!");
   if (ctx.chat?.type === "private") {
     ctx.reply(
-      "Hey there, iron pumper! 💪 I'm the MegaLyfters Photo Bot. Add me to your group and share your progress pics! Here's how:\n\n1️⃣ Take a photo of your workout or gains\n2️⃣ Add '/pumped' in the caption\n3️⃣ Send it to the group\n\nLet's showcase those epic gains together! 💪📸",
+      "Hey there, activity champion! 🏋️‍♂️👨‍💻 I'm the MegaZu activity tracker. Add me to your group and share your progress pics! Here's how:\n\n1️⃣ Take a photo of your workout for gym progress\n2️⃣ For coding/shipping progress, take a photo of your computer screen showing code, dev environment, or presentation\n3️⃣ Add '/pumped' for gym pics or '/shipping' for coding/presentation pics in the caption\n4️⃣ Send it to the group\n\nLet's showcase those epic gains and ships! 💪📸🚢",
       { reply_parameters: { message_id: ctx.message.message_id } },
     );
   } else {
     ctx.reply(
-      "MegaLyfters, get ready to pump it up! 🦸‍♂️🦸‍♀️ Your friendly neighborhood Gains Guardian is here!\n\nTo show off your progress:\n1️⃣ Snap a pic of your workout or gains\n2️⃣ Include '/pumped' in the caption\n3️⃣ Share it with the group\n\n",
+      "MegaZu trackers, get ready to flex those muscles and ship that code! 🦸‍♂️🦸‍♀️ Your friendly neighborhood Progress Guardian is here!\n\nTo show off your progress:\n1️⃣ Snap a pic of your workout for gym progress\n2️⃣ For coding/shipping, capture your computer screen with code, dev environment, or presentation\n3️⃣ Include '/pumped' for gym pics or '/shipping' for coding/presentation pics in the caption\n4️⃣ Share it with the group\n\nLet's see those gains and ships! 💪🖥️🚢",
       { reply_parameters: { message_id: ctx.message.message_id } },
     );
   }
@@ -33,7 +37,9 @@ bot.command("start", (ctx) => {
 
 bot.on("photo", handlePhotoSent);
 
-bot.command("ranking", handleGetRanking);
+bot.command("lifters", handleGetRanking);
+
+bot.command("shippers", handleGetShippingRanking);
 
 // Express routes
 app.get("/", (_req, res) => {
