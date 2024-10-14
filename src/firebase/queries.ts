@@ -1,11 +1,12 @@
 import { Context } from "telegraf";
-import { db } from ".";
 import { getPlacementEmoji } from "../utils";
+import { firestore } from "firebase-admin";
 
 export async function updateUserCount(
   ctx: Context,
   currentDate: string,
   isShipping: boolean,
+  db: firestore.Firestore,
 ) {
   const userId = ctx.from?.id.toString();
   const username = ctx.from?.username || ctx.from?.first_name || "Anonymous";
@@ -60,7 +61,10 @@ export async function updateUserCount(
   });
 }
 
-export async function getRanking(groupId: string): Promise<string> {
+export async function getRanking(
+  groupId: string,
+  db: firestore.Firestore,
+): Promise<string> {
   try {
     const usersSnapshot = await db
       .collection("groups")
@@ -87,7 +91,10 @@ export async function getRanking(groupId: string): Promise<string> {
   }
 }
 
-export async function getShippingRanking(groupId: string): Promise<string> {
+export async function getShippingRanking(
+  groupId: string,
+  db: firestore.Firestore,
+): Promise<string> {
   try {
     const usersSnapshot = await db
       .collection("groups")

@@ -1,7 +1,7 @@
 import express from "express";
 import dotenv from "dotenv";
 import { Telegraf } from "telegraf";
-import { initializeFirebase } from "./firebase";
+import * as admin from "firebase-admin";
 import {
   handlePhotoSent,
   handleGetRanking,
@@ -16,7 +16,15 @@ const port = process.env.PORT || 3000;
 app.use(express.json());
 
 // Initialize Firebase
-initializeFirebase();
+admin.initializeApp({
+  credential: admin.credential.cert({
+    projectId: process.env.FIREBASE_PROJECT_ID,
+    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+    privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
+  }),
+});
+
+const db = admin.firestore();
 
 // Initialize Telegram bot
 const bot = new Telegraf(process.env.BOT_TOKEN!);
@@ -36,9 +44,9 @@ bot.command("start", (ctx) => {
   }
 });
 
-bot.on("photo", handlePhotoSent);
-bot.command("lifters", handleGetRanking);
-bot.command("shippers", handleGetShippingRanking);
+bot.on("photo", (ctx) => handlePhotoSent(ctx, db));
+bot.command("lifters", (ctx) => handleGetRanking(ctx, db));
+bot.command("shippers", (ctx) => handleGetShippingRanking(ctx, db));
 
 // Express routes
 app.get("/", (_req, res) => {
@@ -48,8 +56,13 @@ app.get("/", (_req, res) => {
 // Start server and bot
 async function startApp() {
   try {
-    // Ensure Firebase is initialized
-    initializeFirebase();
+    admin.initializeApp({
+      credential: admin.credential.cert({
+        projectId: process.env.FIREBASE_PROJECT_ID,
+        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+        privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
+      }),
+    });
 
     // Start Express server
     app.listen(port, () => {

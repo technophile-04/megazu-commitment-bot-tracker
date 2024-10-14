@@ -1,6 +1,5 @@
-import { Context, Telegraf } from "telegraf";
-import { Message, Update } from "telegraf/typings/core/types/typegram";
-import { acquireLock, releaseLock, db } from "../firebase";
+import { Context } from "telegraf";
+import { Message } from "telegraf/typings/core/types/typegram";
 import axios from "axios";
 import {
   getRanking,
@@ -12,8 +11,13 @@ import {
   analyzeAndRoastShippingPhoto,
 } from "../openai";
 import { getCurrentDate } from "../utils";
+import { firestore } from "firebase-admin";
+import { acquireLock, releaseLock } from "../firebase";
 
-export const handlePhotoSent = async (ctx: Context) => {
+export const handlePhotoSent = async (
+  ctx: Context,
+  db: firestore.Firestore,
+) => {
   const msg = ctx.message as Message.PhotoMessage;
 
   // Check if the caption contains "/pumped", "/pump", or "/shipped"
@@ -49,7 +53,7 @@ export const handlePhotoSent = async (ctx: Context) => {
     }
 
     const lockRef = db.collection("locks").doc(`${groupId}_${userId}`);
-    const acquired = await acquireLock(lockRef);
+    const acquired = await acquireLock(lockRef, 10000, db);
 
     if (!acquired) {
       await ctx.reply(
@@ -108,7 +112,7 @@ export const handlePhotoSent = async (ctx: Context) => {
         : await analyzeAndRoastGymPhoto(photoBuffer, username);
 
       if (isValidPhoto) {
-        await updateUserCount(ctx, currentDate, isShipping);
+        await updateUserCount(ctx, currentDate, isShipping, db);
         // No need to update todayData here, as it's handled in updateUserCount
       } else {
         // Only increment attempts for invalid photos
@@ -144,9 +148,7 @@ export const handlePhotoSent = async (ctx: Context) => {
   }
 };
 
-export const handleGetRanking: Parameters<
-  Telegraf<Context<Update>>["command"]
->[1] = async (ctx) => {
+export const handleGetRanking = async (ctx: any, db: firestore.Firestore) => {
   if (ctx.chat.type === "private") {
     ctx.reply(
       "Hey fitness champion, this is a team sport! 🏆 Use this command in your MegaZu group to see who's the ultimate fitness guru!",
@@ -157,7 +159,7 @@ export const handleGetRanking: Parameters<
 
   try {
     const groupId = ctx.chat.id.toString();
-    const ranking = await getRanking(groupId);
+    const ranking = await getRanking(groupId, db);
     ctx.reply(ranking);
   } catch (error) {
     console.error("Error getting fitness ranking:", error);
@@ -168,9 +170,10 @@ export const handleGetRanking: Parameters<
   }
 };
 
-export const handleGetShippingRanking: Parameters<
-  Telegraf<Context<Update>>["command"]
->[1] = async (ctx) => {
+export const handleGetShippingRanking = async (
+  ctx: any,
+  db: firestore.Firestore,
+) => {
   if (ctx.chat.type === "private") {
     ctx.reply(
       "Hey code shipper, this is a team effort! 🚢 Use this command in your MegaZu group to see who's the ultimate shipping champion!",
@@ -181,7 +184,7 @@ export const handleGetShippingRanking: Parameters<
 
   try {
     const groupId = ctx.chat.id.toString();
-    const ranking = await getShippingRanking(groupId);
+    const ranking = await getShippingRanking(groupId, db);
     ctx.reply(ranking);
   } catch (error) {
     console.error("Error getting shipping ranking:", error);

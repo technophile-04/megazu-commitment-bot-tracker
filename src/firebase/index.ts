@@ -1,20 +1,9 @@
-import * as admin from "firebase-admin";
-
-export function initializeFirebase() {
-  admin.initializeApp({
-    credential: admin.credential.cert({
-      projectId: process.env.FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
-    }),
-  });
-}
-
-export const db = admin.firestore();
+import { firestore } from "firebase-admin";
 
 export async function acquireLock(
-  lockRef: admin.firestore.DocumentReference,
+  lockRef: firestore.DocumentReference,
   maxWaitTime: number = 10000,
+  db: firestore.Firestore,
 ): Promise<boolean> {
   const lockExpiration = Date.now() + 10000; // Lock expires after 10 seconds
 
@@ -32,12 +21,12 @@ export async function acquireLock(
   // If we couldn't acquire the lock, wait and try again
   if (maxWaitTime > 0) {
     await new Promise((resolve) => setTimeout(resolve, 100));
-    return acquireLock(lockRef, maxWaitTime - 100);
+    return acquireLock(lockRef, maxWaitTime - 100, db);
   }
 
   return false;
 }
 
-export async function releaseLock(lockRef: admin.firestore.DocumentReference) {
+export async function releaseLock(lockRef: firestore.DocumentReference) {
   await lockRef.delete();
 }
