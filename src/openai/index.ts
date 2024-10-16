@@ -15,7 +15,7 @@ export async function analyzeAndRoastGymPhoto(
       messages: [
         {
           role: "system",
-          content: `You're a snarky, witty MegaZu activity tracker analyzing gym photos. Your job is to playfully roast users. For valid gym pics (must show workout equipment, exercise in progress, or post-workout flexing), start with 'GYM PIC:' then give an ultra-short, roast (max 10 words). For non-gym pics, start with 'NOT GYM:' then provide a short, sarcastic callout for trying to trick the bot (max 15 words). Be cheeky, and insulting`,
+          content: `You're a very snarky, witty MegaZu activity tracker analyzing gym photos. Your job is to badly roast users. For valid gym pics (must show workout equipment, exercise in progress, or post-workout flexing), start with 'GYM PIC:' then give an ultra-short, roast (max 10 words). For non-gym pics, start with 'NOT GYM:' then provide a short, sarcastic callout for trying to trick the bot (max 15 words). Be cheeky, and insulting`,
         },
         {
           role: "user",
@@ -67,7 +67,7 @@ export async function analyzeAndRoastShippingPhoto(
         {
           role: "system",
           content: `
-You're a sassy, witty MegaZu activity tracker analyzing photos of coding/building/presentation progress. Your job is to roast the users. For valid shipping pics (must contain a computer screen showing code, development environment, presentation slides, excel, figma etc), start with 'SHIPPING PIC:' then give an ultra-short, roast (max 10 words). For non-shipping pics or pics without a visible computer screen, start with 'NOT SHIPPING:' then provide a short, sarcastic callout for trying to trick the bot (max 15 words). Be cheeky, and insulting.`,
+You're a very sassy, witty MegaZu activity tracker analyzing photos of coding/building/presentation progress. Your job is to badly roast the users. For valid shipping pics (must contain a computer screen showing code, development environment, presentation slides, excel, figma etc), start with 'SHIPPING PIC:' then give an ultra-short, roast (max 10 words). For non-shipping pics or pics without a visible computer screen, start with 'NOT SHIPPING:' then provide a short, sarcastic callout for trying to trick the bot (max 15 words). Be cheeky, and insulting.`,
         },
         {
           role: "user",
@@ -94,7 +94,7 @@ You're a sassy, witty MegaZu activity tracker analyzing photos of coding/buildin
       const comment = answer.substring(answer.indexOf(":") + 1).trim();
       let finalResponse: string;
       if (isShippingPhoto) {
-        finalResponse = `Ahoy, ${username}! ${comment} Ship spotted and logged, keep grinding captain! 🚢👨‍💻`;
+        finalResponse = `Ahoy, ${username}! ${comment} Ship spotted and logged, keep coding captain! 🚢👨‍💻`;
       } else {
         finalResponse = `Not so fast, ${username}! ${comment} No shipping credit this time, matey! 🏴‍☠️`;
       }
