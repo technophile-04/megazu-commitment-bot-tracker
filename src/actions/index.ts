@@ -255,3 +255,50 @@ export const handleGetMindfulnessRanking = async (
     );
   }
 };
+
+export async function handleBeZen(ctx: Context, db: firestore.Firestore) {
+  const userId = ctx.from?.id.toString();
+  const username = ctx.from?.username || ctx.from?.first_name || "Anonymous";
+  const groupId = ctx.chat?.id.toString();
+
+  if (!userId || !groupId) {
+    await ctx.reply("Oops! Something went wrong. Please try again later.");
+    return;
+  }
+
+  if (ctx?.chat?.type === "private") {
+    await ctx.reply(
+      "Hey there, zen seeker! 🧘‍♂️ Add me to a group to start your mindfulness journey with friends!",
+    );
+    return;
+  }
+
+  const userRef = db
+    .collection("groups")
+    .doc(groupId)
+    .collection("users")
+    .doc(userId);
+
+  try {
+    const userDoc = await userRef.get();
+
+    if (!userDoc.exists) {
+      await userRef.set({
+        username,
+        mindfulnessCount: 0,
+        fitnessCount: 0,
+        shippingCount: 0,
+      });
+      await ctx.reply(
+        `Welcome to the zen circle, ${username}! 🧘‍♂️✨ You're now ready to log your mindfulness moments with /zenned.`,
+      );
+    } else {
+      await ctx.reply(
+        `You're already on the path to enlightenment, ${username}! 🌟 Keep using /zenned to log your mindfulness moments.`,
+      );
+    }
+  } catch (error) {
+    console.error("Error in handleBeZen:", error);
+    await ctx.reply("Oops! Our zen master stumbled. Please try again later.");
+  }
+}

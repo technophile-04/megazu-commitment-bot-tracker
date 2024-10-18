@@ -133,45 +133,29 @@ export async function updateGroupMindfulnessCount(
   db: firestore.Firestore,
 ) {
   const groupRef = db.collection("groups").doc(groupId);
+  const batch = db.batch();
 
-  await db.runTransaction(async (transaction) => {
-    const groupDoc = await transaction.get(groupRef);
-    const groupData = groupDoc.data() || {};
-    const groupMindfulnessCount = groupData.groupMindfulnessCount || 0;
+  for (const username of mentionedUsers) {
+    const userQuery = await groupRef
+      .collection("users")
+      .where("username", "==", username)
+      .limit(1)
+      .get();
 
-    // Increment the group mindfulness count
-    const newGroupMindfulnessCount = groupMindfulnessCount + 1;
+    if (!userQuery.empty) {
+      const userDoc = userQuery.docs[0];
+      const userData = userDoc.data();
+      const userMindfulnessCount = userData.mindfulnessCount || 0;
 
-    // Update the group document
-    transaction.set(
-      groupRef,
-      { groupMindfulnessCount: newGroupMindfulnessCount },
-      { merge: true },
-    );
-
-    // Update each mentioned user's mindfulness count
-    for (const username of mentionedUsers) {
-      const userQuery = await db
-        .collection("groups")
-        .doc(groupId)
-        .collection("users")
-        .where("username", "==", username)
-        .limit(1)
-        .get();
-
-      if (!userQuery.empty) {
-        const userDoc = userQuery.docs[0];
-        const userData = userDoc.data();
-        const userMindfulnessCount = userData.mindfulnessCount || 0;
-
-        transaction.set(
-          userDoc.ref,
-          { mindfulnessCount: userMindfulnessCount + 1 },
-          { merge: true },
-        );
-      }
+      batch.set(
+        userDoc.ref,
+        { mindfulnessCount: userMindfulnessCount + 1 },
+        { merge: true },
+      );
     }
-  });
+  }
+
+  await batch.commit();
 }
 
 export async function getMindfulnessRanking(
