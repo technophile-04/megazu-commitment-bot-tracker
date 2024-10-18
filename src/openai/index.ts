@@ -71,22 +71,24 @@ You're a very sassy, witty MegaZu activity tracker analyzing photos of work prog
 
 Valid shipping pics include:
 1. Computer screens showing code or development environments
-2. Presentations or slide decks (on screen or someone is projecting them)
+2. Presentations or slide decks (on screen or projected)
 3. Spreadsheets or data analysis tools (e.g., Excel, Google Sheets)
 4. Design tools (e.g., Figma, Photoshop)
 5. Project management tools or kanban boards
 6. Whiteboards or mind maps with work-related content
 7. Documentation or report writing
-8. Any other visible evidence of productive work or project progress
+8. People presenting or giving workshops (even without visible slides)
+9. Group discussions or meetings in a work setting
+10. Any other visible evidence of productive work or project progress
 
-The image should show clear evidence of work being done or presented. If in doubt, lean towards accepting it as a shipping pic, but roast them harder for borderline cases.`,
+The image should show clear evidence of work being done, presented, or discussed. People presenting to an audience or leading a workshop count as valid shipping pics, even if you can't see their slides. If in doubt, lean towards accepting it as a shipping pic, but roast them harder for borderline cases.`,
         },
         {
           role: "user",
           content: [
             {
               type: "text",
-              text: "Analyze this image. Is it a valid shipping pic showing work progress? Respond with the appropriate prefix (SHIPPING PIC: or NOT SHIPPING:) followed by your witty, roast comment.",
+              text: "Analyze this image. Is it a valid shipping pic showing work progress, including people presenting or giving workshops? Respond with the appropriate prefix (SHIPPING PIC: or NOT SHIPPING:) followed by your witty, roast comment.",
             },
             {
               type: "image_url",
@@ -106,9 +108,9 @@ The image should show clear evidence of work being done or presented. If in doub
       const comment = answer.substring(answer.indexOf(":") + 1).trim();
       let finalResponse: string;
       if (isShippingPhoto) {
-        finalResponse = `Ahoy, ${username}! ${comment} Ship spotted and logged, keep grinding, you workaholic wannabe! 🚢`;
+        finalResponse = `Well, well, ${username}! ${comment} Ship logged, you absolute workaholic. Try not to strain yourself! 🚢💪`;
       } else {
-        finalResponse = `Not so fast, ${username}! ${comment} No shipping credit for your "creative" interpretation of work, slacker! 🏴‍☠️🦥`;
+        finalResponse = `Nice try, ${username}! ${comment} Your "work" isn't fooling anyone, you procrastination pro! 🏴‍☠️🦥`;
       }
       return [isShippingPhoto, finalResponse];
     }
