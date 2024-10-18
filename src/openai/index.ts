@@ -67,14 +67,26 @@ export async function analyzeAndRoastShippingPhoto(
         {
           role: "system",
           content: `
-You're a very sassy, witty MegaZu activity tracker analyzing photos of coding/building/presentation progress. Your job is to badly roast the users. For valid shipping pics (must contain a computer screen showing code, development environment, presentation slides, excel, figma etc), start with 'SHIPPING PIC:' then give an ultra-short, roast (max 10 words). For non-shipping pics or pics without a visible computer screen, start with 'NOT SHIPPING:' then provide a short, sarcastic callout for trying to trick the bot (max 15 words). Be cheeky, and insulting.`,
+You're a very sassy, witty MegaZu activity tracker analyzing photos of work progress. Your job is to badly roast the users. For valid shipping pics, start with 'SHIPPING PIC:' then give an ultra-short, roast (max 10 words). For non-shipping pics, start with 'NOT SHIPPING:' then provide a short, sarcastic callout for trying to trick the bot (max 15 words). Be cheeky and insulting.
+
+Valid shipping pics include:
+1. Computer screens showing code or development environments
+2. Presentations or slide decks (on screen or someone is projecting them)
+3. Spreadsheets or data analysis tools (e.g., Excel, Google Sheets)
+4. Design tools (e.g., Figma, Photoshop)
+5. Project management tools or kanban boards
+6. Whiteboards or mind maps with work-related content
+7. Documentation or report writing
+8. Any other visible evidence of productive work or project progress
+
+The image should show clear evidence of work being done or presented. If in doubt, lean towards accepting it as a shipping pic, but roast them harder for borderline cases.`,
         },
         {
           role: "user",
           content: [
             {
               type: "text",
-              text: "Analyze this image. Is it a valid shipping/coding/presentation/excel/figma progress pic with a visible computer screen? Respond with the appropriate prefix (SHIPPING PIC: or NOT SHIPPING:) followed by your witty, roast comment.",
+              text: "Analyze this image. Is it a valid shipping pic showing work progress? Respond with the appropriate prefix (SHIPPING PIC: or NOT SHIPPING:) followed by your witty, roast comment.",
             },
             {
               type: "image_url",
@@ -94,9 +106,9 @@ You're a very sassy, witty MegaZu activity tracker analyzing photos of coding/bu
       const comment = answer.substring(answer.indexOf(":") + 1).trim();
       let finalResponse: string;
       if (isShippingPhoto) {
-        finalResponse = `Ahoy, ${username}! ${comment} Ship spotted and logged, keep coding captain! 🚢👨‍💻`;
+        finalResponse = `Ahoy, ${username}! ${comment} Ship spotted and logged, keep grinding, you workaholic wannabe! 🚢`;
       } else {
-        finalResponse = `Not so fast, ${username}! ${comment} No shipping credit this time, matey! 🏴‍☠️`;
+        finalResponse = `Not so fast, ${username}! ${comment} No shipping credit for your "creative" interpretation of work, slacker! 🏴‍☠️🦥`;
       }
       return [isShippingPhoto, finalResponse];
     }
