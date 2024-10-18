@@ -6,6 +6,7 @@ import {
   handlePhotoSent,
   handleGetRanking,
   handleGetShippingRanking,
+  handleGetMindfulnessRanking,
 } from "./actions";
 
 dotenv.config();
@@ -32,12 +33,12 @@ bot.command("start", (ctx) => {
   console.log("Starting the bot!!");
   if (ctx.chat?.type === "private") {
     ctx.reply(
-      "Hey there, activity champion! 🏋️‍♂️👨‍💻 I'm the MegaZu activity tracker. Add me to your group and share your progress pics! Here's how:\n\n1️⃣ Take a photo of your workout or coding progress\n2️⃣ Add '/pumped' for gym pics or '/shipped' for coding pics in the caption\n3️⃣ Send it to the group\n\nLet's showcase those epic gains and ships! 💪📸🚢",
+      "Hey there, wellness champion! 🏋️‍♂️👨‍💻🧘‍♂️ I'm the MegaZu activity tracker. Add me to your group and share your progress pics! Here's how:\n\n1️⃣ Take a photo of your workout, coding progress, or mindfulness practice\n2️⃣ Add '/pumped' for gym pics, '/shipped' for coding pics, or '/zenned' for mindfulness pics in the caption\n3️⃣ Send it to the group\n\nLet's showcase those epic gains, ships, and zen moments! 💪📸🚢🧘‍♂️",
       { reply_parameters: { message_id: ctx.message.message_id } },
     );
   } else {
     ctx.reply(
-      "MegaZu trackers, get ready to flex those muscles and ship that code! 🦸‍♂️🦸‍♀️ Your friendly neighborhood Progress Guardian is here!\n\nTo show off your progress:\n1️⃣ Snap a pic of your workout or coding\n2️⃣ Include '/pumped' for gym pics or '/shipped' for coding pics in the caption\n3️⃣ Share it with the group\n\nLet's see those gains and ships! 💪🖥️🚢",
+      "MegaZu trackers, get ready to flex those muscles, ship that code, and find your zen! 🦸‍♂️🦸‍♀️ Your friendly neighborhood Progress Guardian is here!\n\nTo show off your progress:\n1️⃣ Snap a pic of your workout, coding, or mindfulness practice\n2️⃣ Include '/pumped' for gym pics, '/shipped' for coding pics, or '/zenned' for mindfulness pics in the caption\n3️⃣ Share it with the group\n\nLet's see those gains, ships, and zen moments! 💪🖥️🚢🧘‍♂️",
       { reply_parameters: { message_id: ctx.message.message_id } },
     );
   }
@@ -46,6 +47,7 @@ bot.command("start", (ctx) => {
 bot.on("photo", (ctx) => handlePhotoSent(ctx, db));
 bot.command("lifters", (ctx) => handleGetRanking(ctx, db));
 bot.command("shippers", (ctx) => handleGetShippingRanking(ctx, db));
+bot.command("zensters", (ctx) => handleGetMindfulnessRanking(ctx, db));
 
 // Express routes
 app.get("/", (_req, res) => {

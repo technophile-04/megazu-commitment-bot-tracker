@@ -2,15 +2,18 @@ import { Context } from "telegraf";
 import { Message } from "telegraf/typings/core/types/typegram";
 import axios from "axios";
 import {
+  getMindfulnessRanking,
   getRanking,
   getShippingRanking,
+  updateGroupMindfulnessCount,
   updateUserCount,
 } from "../firebase/queries";
 import {
   analyzeAndRoastGymPhoto,
+  analyzeAndRoastMindfulnessPhoto,
   analyzeAndRoastShippingPhoto,
 } from "../openai";
-import { getCurrentDate } from "../utils";
+import { extractMentions, getCurrentDate } from "../utils";
 import { firestore } from "firebase-admin";
 import { acquireLock, releaseLock } from "../firebase";
 
@@ -20,17 +23,21 @@ export const handlePhotoSent = async (
 ) => {
   const msg = ctx.message as Message.PhotoMessage;
 
-  // Check if the caption contains "/pumped", "/pump", or "/shipped"
-  if (!msg.caption || !/\/pumped|\/pump|\/shipped/i.test(msg.caption)) {
+  // Check if the caption contains "/pumped", "/pump", "/shipped", or "/zenned"
+  if (
+    !msg.caption ||
+    !/\/pumped|\/pump|\/shipped|\/zenned/i.test(msg.caption)
+  ) {
     // If not a valid command, ignore this photo
     return;
   }
 
   const isShipping = /\/shipped/i.test(msg.caption);
+  const isMindfulness = /\/zenned/i.test(msg.caption);
 
   if (ctx.chat?.type === "private") {
     await ctx.reply(
-      `Whoa there, solo ${isShipping ? "coder" : "athlete"}! 🐺 Add me to your crew (group) to start the ultimate ${isShipping ? "shipping" : "fitness"} party!`,
+      `Whoa there, solo ${isMindfulness ? "zen seeker" : isShipping ? "coder" : "athlete"}! 🐺 Add me to your crew (group) to start the ultimate ${isMindfulness ? "mindfulness" : isShipping ? "shipping" : "fitness"} party!`,
       { reply_parameters: { message_id: msg.message_id } },
     );
     return;
@@ -41,12 +48,16 @@ export const handlePhotoSent = async (
     const username =
       ctx.from?.first_name ||
       ctx.from?.username ||
-      (isShipping ? "Code Shipper" : "Fitness Enthusiast");
+      (isMindfulness
+        ? "Mindfulness Enthusiast"
+        : isShipping
+          ? "Code Shipper"
+          : "Fitness Enthusiast");
     const groupId = ctx.chat?.id.toString();
 
     if (!userId || !groupId) {
       await ctx.reply(
-        `Oops! Our ${isShipping ? "ship-o-meter" : "fit-o-meter"} malfunctioned. 🔧 Give it a quick rest and try ${isShipping ? "shipping" : "flexing"} again!`,
+        `Oops! Our ${isMindfulness ? "zen-o-meter" : isShipping ? "ship-o-meter" : "fit-o-meter"} malfunctioned. 🔧 Give it a quick rest and try ${isMindfulness ? "finding your center" : isShipping ? "shipping" : "flexing"} again!`,
         { reply_parameters: { message_id: msg.message_id } },
       );
       return;
@@ -57,7 +68,7 @@ export const handlePhotoSent = async (
 
     if (!acquired) {
       await ctx.reply(
-        `Easy there, turbo ${isShipping ? "shipper" : "athlete"}! 🏃‍♂️💨 We're still processing your last ${isShipping ? "commit" : "rep"}. Give us a sec to catch our breath!`,
+        `Easy there, turbo ${isMindfulness ? "zen seeker" : isShipping ? "shipper" : "athlete"}! 🧘‍♂️💨 We're still processing your last ${isMindfulness ? "moment of zen" : isShipping ? "commit" : "rep"}. Give us a sec to find our balance!`,
         { reply_parameters: { message_id: msg.message_id } },
       );
       return;
@@ -78,15 +89,17 @@ export const handlePhotoSent = async (
       const todayData = dailyData[currentDate] || {
         gymPhotoUploaded: false,
         shippingPhotoUploaded: false,
+        mindfulnessPhotoUploaded: false,
         attempts: 0,
       };
 
       if (
+        (isMindfulness && todayData.mindfulnessPhotoUploaded) ||
         (isShipping && todayData.shippingPhotoUploaded) ||
-        (!isShipping && todayData.gymPhotoUploaded)
+        (!isShipping && !isMindfulness && todayData.gymPhotoUploaded)
       ) {
         await ctx.reply(
-          `Whoa, ${username}! 🏆 You've already logged your daily ${isShipping ? "shipping" : "fitness"} activity. Save some amazement for tomorrow, you beast!`,
+          `Whoa, ${username}! 🏆 You've already logged your daily ${isMindfulness ? "mindfulness" : isShipping ? "shipping" : "fitness"} activity. Save some amazement for tomorrow, you ${isMindfulness ? "enlightened being" : "beast"}!`,
           { reply_parameters: { message_id: msg.message_id } },
         );
         return;
@@ -94,7 +107,7 @@ export const handlePhotoSent = async (
 
       if (todayData.attempts >= 5) {
         await ctx.reply(
-          `Hold up, ${username}! 🛑 You've hit your daily attempt limit. Time to rest those ${isShipping ? "fingers" : "muscles"} and come back more ${isShipping ? "productive" : "energized"} tomorrow! ${isShipping ? "⌨️😴" : "💪😴"}`,
+          `Hold up, ${username}! 🛑 You've hit your daily attempt limit. Time to rest those ${isMindfulness ? "thoughts" : isShipping ? "fingers" : "muscles"} and come back more ${isMindfulness ? "centered" : isShipping ? "productive" : "energized"} tomorrow! ${isMindfulness ? "🧘‍♂️😴" : isShipping ? "⌨️😴" : "💪😴"}`,
           { reply_parameters: { message_id: msg.message_id } },
         );
         return;
@@ -107,13 +120,36 @@ export const handlePhotoSent = async (
       });
       const photoBuffer = Buffer.from(response.data, "binary");
 
-      const [isValidPhoto, roast] = isShipping
-        ? await analyzeAndRoastShippingPhoto(photoBuffer, username)
-        : await analyzeAndRoastGymPhoto(photoBuffer, username);
+      let isValidPhoto: boolean;
+      let roast: string;
+
+      if (isMindfulness) {
+        [isValidPhoto, roast] = await analyzeAndRoastMindfulnessPhoto(
+          photoBuffer,
+          username,
+        );
+      } else if (isShipping) {
+        [isValidPhoto, roast] = await analyzeAndRoastShippingPhoto(
+          photoBuffer,
+          username,
+        );
+      } else {
+        [isValidPhoto, roast] = await analyzeAndRoastGymPhoto(
+          photoBuffer,
+          username,
+        );
+      }
 
       if (isValidPhoto) {
-        await updateUserCount(ctx, currentDate, isShipping, db);
-        // No need to update todayData here, as it's handled in updateUserCount
+        await updateUserCount(ctx, currentDate, isShipping, isMindfulness, db);
+
+        if (isMindfulness) {
+          const mentionedUsers = extractMentions(msg.caption);
+          if (mentionedUsers.length > 0) {
+            await updateGroupMindfulnessCount(groupId, mentionedUsers, db);
+            roast += `\n\nLook at you, spreading the zen! ${mentionedUsers.join(", ")} ${mentionedUsers.length > 1 ? "are" : "is"} now part of your mindfulness circle! 🧘‍♂️🧘‍♀️`;
+          }
+        }
       } else {
         // Only increment attempts for invalid photos
         await userRef.set(
@@ -138,11 +174,11 @@ export const handlePhotoSent = async (
     }
   } catch (error) {
     console.error(
-      `Error processing ${isShipping ? "shipping" : "fitness"} activity:`,
+      `Error processing ${isMindfulness ? "mindfulness" : isShipping ? "shipping" : "fitness"} activity:`,
       error,
     );
     await ctx.reply(
-      `Oof! 😅 Looks like our bot's ${isShipping ? "code" : "workout"} routine hit a snag. Let's take a quick break and try that again!`,
+      `Oof! 😅 Looks like our bot's ${isMindfulness ? "zen" : isShipping ? "code" : "workout"} routine hit a snag. Let's take a quick break and try that again!`,
       { reply_parameters: { message_id: msg.message_id } },
     );
   }
@@ -190,6 +226,31 @@ export const handleGetShippingRanking = async (
     console.error("Error getting shipping ranking:", error);
     ctx.reply(
       "Uh-oh! Our ship-o-meter is experiencing some turbulence. 😅 Take a moment to debug and try checking the rankings again soon!",
+      { reply_parameters: { message_id: ctx.message.message_id } },
+    );
+  }
+};
+
+export const handleGetMindfulnessRanking = async (
+  ctx: any,
+  db: firestore.Firestore,
+) => {
+  if (ctx.chat.type === "private") {
+    ctx.reply(
+      "Hey mindfulness guru, this is a group journey! 🧘‍♂️ Use this command in your MegaZu group to see who's the ultimate zen master!",
+      { reply_parameters: { message_id: ctx.message.message_id } },
+    );
+    return;
+  }
+
+  try {
+    const groupId = ctx.chat.id.toString();
+    const ranking = await getMindfulnessRanking(groupId, db);
+    ctx.reply(ranking);
+  } catch (error) {
+    console.error("Error getting mindfulness ranking:", error);
+    ctx.reply(
+      "Uh-oh! Our zen-o-meter is feeling a bit scattered. 😅 Take a deep breath and try checking the rankings again in a moment!",
       { reply_parameters: { message_id: ctx.message.message_id } },
     );
   }

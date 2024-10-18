@@ -120,3 +120,54 @@ The image should show clear evidence of work being done, presented, or discussed
     return [false, ""];
   }
 }
+
+export async function analyzeAndRoastMindfulnessPhoto(
+  photoBuffer: Buffer,
+  username: string,
+): Promise<[boolean, string]> {
+  try {
+    const base64Image = photoBuffer.toString("base64");
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: `You're a witty MegaZu activity tracker analyzing mindfulness photos. Your job is to badly roast users. For valid mindfulness pics (showing meditation, yoga, tai chi, or any mindfulness practice), start with 'ZEN PIC:' then give an ultra-short, roast (max 11 words). For non-mindfulness pics, start with 'NOT ZEN:' then provide a short, sarcastic callout for trying to trick the bot (max 15 words). Be cheeky, humorous and insulting.`,
+        },
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: "Analyze this image. Is it a mindfulness pic? Respond with the appropriate prefix (ZEN PIC: or NOT ZEN:) followed by your witty, roast comment.",
+            },
+            {
+              type: "image_url",
+              image_url: {
+                url: `data:image/jpeg;base64,${base64Image}`,
+                detail: "low",
+              },
+            },
+          ],
+        },
+      ],
+      max_tokens: 50,
+    });
+    const answer = response.choices[0]?.message?.content;
+    if (answer) {
+      const isZenPhoto = answer.toUpperCase().startsWith("ZEN PIC:");
+      const comment = answer.substring(answer.indexOf(":") + 1).trim();
+      let finalResponse: string;
+      if (isZenPhoto) {
+        finalResponse = `Hey ${username}! ${comment} Zen moment logged, keep finding that inner peace! 🧘‍♂️✨`;
+      } else {
+        finalResponse = `Nice try, ${username}! ${comment} No enlightenment for you this time! 😜🍃`;
+      }
+      return [isZenPhoto, finalResponse];
+    }
+    return [false, ""];
+  } catch (error) {
+    console.error("Error analyzing mindfulness image with OpenAI:", error);
+    return [false, ""];
+  }
+}

@@ -6,6 +6,7 @@ export async function updateUserCount(
   ctx: Context,
   currentDate: string,
   isShipping: boolean,
+  isMindfulness: boolean,
   db: firestore.Firestore,
 ) {
   const userId = ctx.from?.id.toString();
@@ -27,17 +28,21 @@ export async function updateUserCount(
     const todayData = dailyData[currentDate] || {
       gymPhotoUploaded: false,
       shippingPhotoUploaded: false,
+      mindfulnessPhotoUploaded: false,
       attempts: 0,
     };
 
-    // Only increment the count if it hasn't been done for the day
     let fitnessCount = userData.fitnessCount || 0;
     let shippingCount = userData.shippingCount || 0;
+    let mindfulnessCount = userData.mindfulnessCount || 0;
 
-    if (isShipping && !todayData.shippingPhotoUploaded) {
+    if (isMindfulness && !todayData.mindfulnessPhotoUploaded) {
+      todayData.mindfulnessPhotoUploaded = true;
+      mindfulnessCount += 1;
+    } else if (isShipping && !todayData.shippingPhotoUploaded) {
       todayData.shippingPhotoUploaded = true;
       shippingCount += 1;
-    } else if (!isShipping && !todayData.gymPhotoUploaded) {
+    } else if (!isShipping && !isMindfulness && !todayData.gymPhotoUploaded) {
       todayData.gymPhotoUploaded = true;
       fitnessCount += 1;
     }
@@ -50,6 +55,7 @@ export async function updateUserCount(
       {
         fitnessCount,
         shippingCount,
+        mindfulnessCount,
         username,
         dailyData: {
           ...dailyData,
@@ -118,5 +124,84 @@ export async function getShippingRanking(
   } catch (error) {
     console.error("Error getting shipping ranking:", error);
     return "Oops! Our ranking board is experiencing a bug. 🐛 Give it a moment to deploy a fix and try again!";
+  }
+}
+
+export async function updateGroupMindfulnessCount(
+  groupId: string,
+  mentionedUsers: string[],
+  db: firestore.Firestore,
+) {
+  const groupRef = db.collection("groups").doc(groupId);
+
+  await db.runTransaction(async (transaction) => {
+    const groupDoc = await transaction.get(groupRef);
+    const groupData = groupDoc.data() || {};
+    const groupMindfulnessCount = groupData.groupMindfulnessCount || 0;
+
+    // Increment the group mindfulness count
+    const newGroupMindfulnessCount = groupMindfulnessCount + 1;
+
+    // Update the group document
+    transaction.set(
+      groupRef,
+      { groupMindfulnessCount: newGroupMindfulnessCount },
+      { merge: true },
+    );
+
+    // Update each mentioned user's mindfulness count
+    for (const username of mentionedUsers) {
+      const userQuery = await db
+        .collection("groups")
+        .doc(groupId)
+        .collection("users")
+        .where("username", "==", username)
+        .limit(1)
+        .get();
+
+      if (!userQuery.empty) {
+        const userDoc = userQuery.docs[0];
+        const userData = userDoc.data();
+        const userMindfulnessCount = userData.mindfulnessCount || 0;
+
+        transaction.set(
+          userDoc.ref,
+          { mindfulnessCount: userMindfulnessCount + 1 },
+          { merge: true },
+        );
+      }
+    }
+  });
+}
+
+export async function getMindfulnessRanking(
+  groupId: string,
+  db: firestore.Firestore,
+): Promise<string> {
+  try {
+    const usersSnapshot = await db
+      .collection("groups")
+      .doc(groupId)
+      .collection("users")
+      .orderBy("mindfulnessCount", "desc")
+      .limit(10)
+      .get();
+
+    let ranking = "🧘 MegaZu Mindfulness Hall of Zen 🧘\n\n";
+
+    if (usersSnapshot.empty) {
+      return "No zen moments logged yet? Time to start finding your inner peace, MegaZu mindfulness seekers! 🧘‍♂️✨";
+    }
+
+    usersSnapshot.docs.forEach((doc, index) => {
+      const data = doc.data();
+      const emoji = getPlacementEmoji(index);
+      ranking += `${emoji} ${data.username}: ${data.mindfulnessCount} zen moment${data.mindfulnessCount !== 1 ? "s" : ""}\n`;
+    });
+
+    return ranking;
+  } catch (error) {
+    console.error("Error getting mindfulness ranking:", error);
+    return "Oops! Our zen-o-meter is experiencing a moment of chaos. 🌪️ Take a deep breath, and we'll try again soon!";
   }
 }
