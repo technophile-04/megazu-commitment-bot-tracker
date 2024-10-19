@@ -131,6 +131,7 @@ export async function updateGroupMindfulnessCount(
   groupId: string,
   mentionedUsers: string[],
   db: firestore.Firestore,
+  currentDate: string,
 ) {
   const groupRef = db.collection("groups").doc(groupId);
   const batch = db.batch();
@@ -146,12 +147,30 @@ export async function updateGroupMindfulnessCount(
       const userDoc = userQuery.docs[0];
       const userData = userDoc.data();
       const userMindfulnessCount = userData.mindfulnessCount || 0;
+      const dailyData = userData.dailyData || {};
+      const todayData = dailyData[currentDate] || {
+        gymPhotoUploaded: false,
+        shippingPhotoUploaded: false,
+        mindfulnessPhotoUploaded: false,
+        attempts: 0,
+      };
 
-      batch.set(
-        userDoc.ref,
-        { mindfulnessCount: userMindfulnessCount + 1 },
-        { merge: true },
-      );
+      // Only update if not already uploaded today
+      if (!todayData.mindfulnessPhotoUploaded) {
+        todayData.mindfulnessPhotoUploaded = true;
+
+        batch.set(
+          userDoc.ref,
+          {
+            mindfulnessCount: userMindfulnessCount + 1,
+            dailyData: {
+              ...dailyData,
+              [currentDate]: todayData,
+            },
+          },
+          { merge: true },
+        );
+      }
     }
   }
 

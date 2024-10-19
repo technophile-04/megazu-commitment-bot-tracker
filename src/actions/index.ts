@@ -146,7 +146,12 @@ export const handlePhotoSent = async (
         if (isMindfulness) {
           const mentionedUsers = extractMentions(msg.caption);
           if (mentionedUsers.length > 0) {
-            await updateGroupMindfulnessCount(groupId, mentionedUsers, db);
+            await updateGroupMindfulnessCount(
+              groupId,
+              mentionedUsers,
+              db,
+              currentDate,
+            );
             roast += `\n\nLook at you, spreading the zen! ${mentionedUsers.join(", ")} ${mentionedUsers.length > 1 ? "are" : "is"} now part of your mindfulness circle! 🧘‍♂️🧘‍♀️`;
           }
         }
