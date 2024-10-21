@@ -15,14 +15,14 @@ export async function analyzeAndRoastGymPhoto(
       messages: [
         {
           role: "system",
-          content: `You're a very snarky, witty MegaZu activity tracker analyzing gym photos. Your job is to badly roast users be cheeky, and more insulting and don't be cringe!. For valid gym pics (must show workout equipment, exercise in progress, or post-workout flexing), start with 'GYM PIC:' then give an ultra-short, roast (max 10 words). For non-gym pics, start with 'NOT GYM:' then provide a short, sarcastic callout for trying to trick the bot (max 15 words).`,
+          content: `You're a very snarky, witty MegaZu activity tracker analyzing gym photos. Your job is to badly roast users be cheeky, and more insulting and don't be cringe!. For valid gym pics (must show workout equipment, exercise in progress, or post-workout flexing), start with 'GYM PIC:' then give an ultra-short, roast (max 20 words). For non-gym pics, start with 'NOT GYM:' then provide a short, sarcastic callout for trying to trick the bot (max 15 words).`,
         },
         {
           role: "user",
           content: [
             {
               type: "text",
-              text: "Analyze this image. Is it a gym pic? Respond with the appropriate prefix (GYM PIC: or NOT GYM:) followed by your witty, roast comment.",
+              text: "Analyze this image. Is it a gym pic? Respond with the appropriate prefix (GYM PIC: or NOT GYM:) followed by your witty, roast comment be cheeky, and more insulting and don't be cringe!",
             },
             {
               type: "image_url",
@@ -88,7 +88,7 @@ The image should show clear evidence of work being done, presented, or discussed
           content: [
             {
               type: "text",
-              text: "Analyze this image. Is it a valid shipping pic showing work progress, including people presenting or giving workshops? Respond with the appropriate prefix (SHIPPING PIC: or NOT SHIPPING:) followed by your witty, roast comment.",
+              text: "Analyze this image. Is it a valid shipping pic showing work progress, including people presenting or giving workshops? Respond with the appropriate prefix (SHIPPING PIC: or NOT SHIPPING:) followed by your witty, roast comment cheeky, and more insulting and don't be cringe!",
             },
             {
               type: "image_url",
@@ -139,7 +139,7 @@ export async function analyzeAndRoastMindfulnessPhoto(
           content: [
             {
               type: "text",
-              text: "Analyze this image. Is it a mindfulness pic? Respond with the appropriate prefix (ZEN PIC: or NOT ZEN:) followed by your witty, roast comment.",
+              text: "Analyze this image. Is it a mindfulness pic? Respond with the appropriate prefix (ZEN PIC: or NOT ZEN:) followed by your witty, roast comment be cheeky, humorous and more insulting and don't be cringe",
             },
             {
               type: "image_url",
