@@ -14,7 +14,7 @@ import {
   analyzeAndRoastShippingPhoto,
   generateRoast,
 } from "../openai";
-import { extractMentions, getCurrentDate } from "../utils";
+import { extractMentions, getBingBotReaction, getCurrentDate } from "../utils";
 import { firestore } from "firebase-admin";
 import { acquireLock, releaseLock } from "../firebase";
 
@@ -312,7 +312,7 @@ export async function handleBeZen(ctx: Context, db: firestore.Firestore) {
 export async function handleBingRoast(ctx: Context, db: firestore.Firestore) {
   if (!ctx.message || !("reply_to_message" in ctx.message)) {
     await ctx.reply(
-      "*sigh* You need to reply to a photo to summon my roasting powers! I don't have time for this... 🙄",
+      "*sigh* You need to REPLY to a photo to summon my roasting powers! Trying to make my job harder? 🙄",
     );
     return;
   }
@@ -320,21 +320,19 @@ export async function handleBingRoast(ctx: Context, db: firestore.Firestore) {
   const repliedMsg = ctx.message.reply_to_message;
   if (!repliedMsg || !("photo" in repliedMsg)) {
     await ctx.reply(
-      "Look, I'm already overworked. I only roast PHOTOS, okay? 😮‍💨",
+      "Look, I'm already overworked. I only roast PHOTOS, okay? What part of that is unclear? 😮‍💨",
     );
     return;
   }
 
   if (ctx.chat?.type === "private") {
     await ctx.reply(
-      "*drowsy eye roll* Add me to a group chat. I need an audience for my art... 😴",
+      "*drowsy eye roll* You really think I'm going to roast in private? Add me to a group - I need witnesses for my art... 😴",
     );
     return;
   }
 
   const roasterId = ctx.from?.id.toString();
-  const roasterUsername = ctx.from?.first_name || "mystery roaster";
-  const targetUsername = repliedMsg.from?.first_name || "mystery human";
   const groupId = ctx.chat?.id.toString();
 
   if (!roasterId || !groupId) {
@@ -360,7 +358,7 @@ export async function handleBingRoast(ctx: Context, db: firestore.Firestore) {
 
     if (todayData.roastCount >= 3) {
       await ctx.reply(
-        `Listen ${roasterUsername}, I've roasted enough for you today. Go ship some code, hit the gym, or find your zen! I need a break! 😮‍💨`,
+        "Oh look who's back for more roasts! 🙄 Maybe try roasting your keyboard with some actual work instead? Come back tomorrow if you still haven't found a productive hobby! 😮‍💨",
         { reply_parameters: { message_id: ctx.message.message_id } },
       );
       return;
@@ -374,7 +372,7 @@ export async function handleBingRoast(ctx: Context, db: firestore.Firestore) {
     });
     const photoBuffer = Buffer.from(response.data, "binary");
 
-    // Randomly decide who to roast (50-50 chance)
+    // 50% chance to roast the photo, 50% chance to roast the person trying to roast
     const roastTarget = Math.random() < 0.5 ? "photo_sender" : "command_sender";
     const roast = await generateRoast(photoBuffer, roastTarget);
 
@@ -392,19 +390,15 @@ export async function handleBingRoast(ctx: Context, db: firestore.Firestore) {
       { merge: true },
     );
 
-    // Send the roast with the appropriate prefix
-    const targetMsg =
-      roastTarget === "photo_sender"
-        ? `*adjusts glasses tiredly* ${targetUsername}, ${roast}`
-        : `*yawns* Oh ${roasterUsername}, ${roast}`;
+    const response2 = getBingBotReaction(roastTarget === "photo_sender", roast);
 
-    await ctx.reply(targetMsg, {
+    await ctx.reply(response2, {
       reply_parameters: { message_id: ctx.message.message_id },
     });
   } catch (error) {
     console.error("Error in handleBingRoast:", error);
     await ctx.reply(
-      "Ugh, my roasting powers are on PTO right now. Try again later... 😮‍💨",
+      "Ugh, my roasting powers are on PTO right now. Try again when I've had my coffee... 😮‍💨",
       { reply_parameters: { message_id: ctx.message.message_id } },
     );
   }
