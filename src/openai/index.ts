@@ -204,7 +204,9 @@ For both modes:
 
 Start responses with either:
 "PHOTO ROAST:" (for MODE 1) or
-"NICE TRY BUDDY:" (for MODE 2)`,
+"NICE TRY BUDDY:" (for MODE 2)
+
+Keep roast small and not too long`,
         },
         {
           role: "user",
@@ -226,7 +228,7 @@ Start responses with either:
           ],
         },
       ],
-      max_tokens: 100,
+      max_tokens: 75,
     });
 
     const answer = response.choices[0]?.message?.content;
