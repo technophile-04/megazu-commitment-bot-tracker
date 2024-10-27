@@ -188,7 +188,7 @@ export async function generateRoast(
 MODE 1 - PHOTO ROAST (when roastTarget is "photo_sender"):
 - Savagely roast the contents of the photo
 - Be creative and unexpected with the roast
-- End with a tired suggestion to do something productive
+- End with a tired suggestion to do somthing productive related to working/coding/gym/meditating
 
 MODE 2 - ROASTER CALLOUT (when roastTarget is "command_sender"):
 - Instead of roasting the photo, call out the person trying to roast others

@@ -37,5 +37,5 @@ export function getBingBotReaction(
     : roasterCalloutReactions;
   const emoji = isPhotoRoast ? "🥦" : "🍉";
 
-  return `${reactions[Math.floor(Math.random() * reactions.length)]}\n${roast} ${emoji}`;
+  return `${reactions[Math.floor(Math.random() * reactions.length)]}\n\n${roast} ${emoji}`;
 }
