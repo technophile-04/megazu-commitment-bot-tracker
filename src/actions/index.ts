@@ -12,6 +12,7 @@ import {
   analyzeAndRoastGymPhoto,
   analyzeAndRoastMindfulnessPhoto,
   analyzeAndRoastShippingPhoto,
+  generateRoast,
 } from "../openai";
 import { extractMentions, getCurrentDate } from "../utils";
 import { firestore } from "firebase-admin";
@@ -305,5 +306,106 @@ export async function handleBeZen(ctx: Context, db: firestore.Firestore) {
   } catch (error) {
     console.error("Error in handleBeZen:", error);
     await ctx.reply("Oops! Our zen master stumbled. Please try again later.");
+  }
+}
+
+export async function handleBingRoast(ctx: Context, db: firestore.Firestore) {
+  if (!ctx.message || !("reply_to_message" in ctx.message)) {
+    await ctx.reply(
+      "*sigh* You need to reply to a photo to summon my roasting powers! I don't have time for this... 🙄",
+    );
+    return;
+  }
+
+  const repliedMsg = ctx.message.reply_to_message;
+  if (!repliedMsg || !("photo" in repliedMsg)) {
+    await ctx.reply(
+      "Look, I'm already overworked. I only roast PHOTOS, okay? 😮‍💨",
+    );
+    return;
+  }
+
+  if (ctx.chat?.type === "private") {
+    await ctx.reply(
+      "*drowsy eye roll* Add me to a group chat. I need an audience for my art... 😴",
+    );
+    return;
+  }
+
+  const roasterId = ctx.from?.id.toString();
+  const roasterUsername = ctx.from?.first_name || "mystery roaster";
+  const targetUsername = repliedMsg.from?.first_name || "mystery human";
+  const groupId = ctx.chat?.id.toString();
+
+  if (!roasterId || !groupId) {
+    await ctx.reply(
+      "Ugh, technical difficulties. Just like my dating life... 🤦",
+    );
+    return;
+  }
+
+  try {
+    const currentDate = getCurrentDate();
+    const roasterRef = db
+      .collection("groups")
+      .doc(groupId)
+      .collection("users")
+      .doc(roasterId);
+
+    // Check daily roast limit
+    const roasterDoc = await roasterRef.get();
+    const roasterData = roasterDoc.data() || {};
+    const dailyData = roasterData.dailyData || {};
+    const todayData = dailyData[currentDate] || { roastCount: 0 };
+
+    if (todayData.roastCount >= 3) {
+      await ctx.reply(
+        `Listen ${roasterUsername}, I've roasted enough for you today. Go ship some code, hit the gym, or find your zen! I need a break! 😮‍💨`,
+        { reply_parameters: { message_id: ctx.message.message_id } },
+      );
+      return;
+    }
+
+    // Get photo and generate roast
+    const photo = repliedMsg.photo[repliedMsg.photo.length - 1];
+    const fileLink = await ctx.telegram.getFileLink(photo.file_id);
+    const response = await axios.get(fileLink.href, {
+      responseType: "arraybuffer",
+    });
+    const photoBuffer = Buffer.from(response.data, "binary");
+
+    // Randomly decide who to roast (50-50 chance)
+    const roastTarget = Math.random() < 0.5 ? "photo_sender" : "command_sender";
+    const roast = await generateRoast(photoBuffer, roastTarget);
+
+    // Update roast count
+    await roasterRef.set(
+      {
+        dailyData: {
+          ...dailyData,
+          [currentDate]: {
+            ...todayData,
+            roastCount: (todayData.roastCount || 0) + 1,
+          },
+        },
+      },
+      { merge: true },
+    );
+
+    // Send the roast with the appropriate prefix
+    const targetMsg =
+      roastTarget === "photo_sender"
+        ? `*adjusts glasses tiredly* ${targetUsername}, ${roast}`
+        : `*yawns* Oh ${roasterUsername}, ${roast}`;
+
+    await ctx.reply(targetMsg, {
+      reply_parameters: { message_id: ctx.message.message_id },
+    });
+  } catch (error) {
+    console.error("Error in handleBingRoast:", error);
+    await ctx.reply(
+      "Ugh, my roasting powers are on PTO right now. Try again later... 😮‍💨",
+      { reply_parameters: { message_id: ctx.message.message_id } },
+    );
   }
 }

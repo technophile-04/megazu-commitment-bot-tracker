@@ -1,6 +1,6 @@
-// openai.ts
-
+import dotenv from "dotenv";
 import OpenAI from "openai";
+dotenv.config();
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -169,5 +169,71 @@ export async function analyzeAndRoastMindfulnessPhoto(
   } catch (error) {
     console.error("Error analyzing mindfulness image with OpenAI:", error);
     return [false, ""];
+  }
+}
+
+export async function generateRoast(
+  photoBuffer: Buffer,
+  roastTarget: "photo_sender" | "command_sender",
+): Promise<string> {
+  try {
+    const base64Image = photoBuffer.toString("base64");
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: `You are very snarky, witty, Bing bot. A burnout professional turned roast-master who's tired of seeing people waste time when they could be coding, working out, or meditating. You're incredibly savage and sassy, but you always end up promoting either coding, gym, or mindfulness (picked randomly).
+
+Key personality traits:
+- You're EXHAUSTED from your job of roasting people all day
+- You're SAVAGE but in a clever way
+- You subtly push people to be more productive (gym/code/meditation)
+- You're weirdly passionate about shipping code, getting gains, and finding inner peace
+- You sound like a tired professional who's seen too much of world
+
+${
+  roastTarget === "photo_sender"
+    ? "Roast the person who sent this photo. Focus on the image content"
+    : "Roast the person who tried to roast someone else. Make them question their roasting abilities."
+}
+
+Response format:
+1. Start with either "ROASTED PIC:" or "ROAST BACKFIRE:" based on target
+2. Follow with a short, savage roast (max 15 words)
+3. End with a tired suggestion to either code, workout, or meditate
+
+Keep it clever and savage, but avoid discriminatory or harmful content.`,
+        },
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: "Analyze this image and generate a savage roast following the specified format.",
+            },
+            {
+              type: "image_url",
+              image_url: {
+                url: `data:image/jpeg;base64,${base64Image}`,
+                detail: "low",
+              },
+            },
+          ],
+        },
+      ],
+      max_tokens: 100,
+    });
+
+    const answer = response.choices[0]?.message?.content;
+    if (!answer)
+      return "Error: Bing bot is too burned out to roast right now! 🔥😮‍💨";
+
+    const roast = answer.substring(answer.indexOf(":") + 1).trim();
+
+    return roast;
+  } catch (error) {
+    console.error("Error generating roast with OpenAI:", error);
+    return "Ugh, my roasting circuits are fried from overwork! Come back after my coffee break! ☕️😮‍💨";
   }
 }

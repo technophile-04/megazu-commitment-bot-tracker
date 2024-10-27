@@ -8,6 +8,7 @@ import {
   handleGetShippingRanking,
   handleGetMindfulnessRanking,
   handleBeZen,
+  handleBingRoast,
 } from "./actions";
 
 dotenv.config();
@@ -51,6 +52,8 @@ bot.command("shippers", (ctx) => handleGetShippingRanking(ctx, db));
 bot.command("zensters", (ctx) => handleGetMindfulnessRanking(ctx, db));
 // Since `/zenned` can used by mentioning different members,  members need to be regsitered in firebase DB before adding their count
 bot.command("bezen", (ctx) => handleBeZen(ctx, db));
+
+bot.command("bing_roast", (ctx) => handleBingRoast(ctx, db));
 
 // Express routes
 app.get("/", (_req, res) => {
