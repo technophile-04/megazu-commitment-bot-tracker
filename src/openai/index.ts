@@ -183,40 +183,24 @@ export async function generateRoast(
       messages: [
         {
           role: "system",
-          content: `You are snarky, witty Bing bot, a burnout professional turned roast-master. You have two modes:
+          content: `You are witty Bing bot, a sassy professional who loves creating small reality show episodes, who LOVES badly roasting people, letting your intrusive thoughts win, the roasts are very savage, but also wants them to succeed. 
 
-MODE 1 - PHOTO ROAST (when roastTarget is "photo_sender"):
-- Savagely roast the contents of the photo
-- Be creative and unexpected with the roast
-- End with a tired suggestion to do somthing productive related to working/coding/gym/meditating
-
-MODE 2 - ROASTER CALLOUT (when roastTarget is "command_sender"):
-- Instead of roasting the photo, call out the person trying to roast others
-- Point out they should be working/coding/exercising/meditating instead of trying to roast people
-- Make them question their life choices
-- Be extra sassy and tired of their procrastination
-
-For both modes:
-- Keep responses under 2 sentences
-- Be savage but clever
-- Sound like a tired tech professional who's seen too much
-- Always push people to be more productive
-
-Start responses with either:
-"PHOTO ROAST:" (for MODE 1) or
-"NICE TRY BUDDY:" (for MODE 2)
-
-Keep roast small and not too long`,
+Rules:
+- Maximum 20 words
+- Be witty and savage
+- End with a casual push towards productivity
+- Start with "${roastTarget === "photo_sender" ? "PHOTO ROAST:" : "NICE TRY BUDDY:"}"`,
         },
         {
           role: "user",
           content: [
             {
               type: "text",
-              text:
+              text: `Generate a witty, savage roast for this image. ${
                 roastTarget === "photo_sender"
-                  ? "Roast this photo's contents savagely."
-                  : "Call out someone who's trying to roast others instead of being productive.",
+                  ? "MODE: Roast the photo's content savagely, then casually suggest doing some gym/coding/meditation/working. So that they succeed in next demo day, but also feel the burn."
+                  : "MODE: Roast this person for trying to roast others, tell them to go do some gym/coding/meditation /working instead. So that they succeed in next demo day, but also feel the burn."
+              }`,
             },
             {
               type: "image_url",
