@@ -10,7 +10,7 @@ import {
   handleBeZen,
   handleBingRoast,
 } from "./actions";
-import { link } from "telegraf/typings/format";
+import { link } from "telegraf/format";
 
 dotenv.config();
 
