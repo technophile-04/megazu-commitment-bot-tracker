@@ -1,6 +1,6 @@
 import express from "express";
 import dotenv from "dotenv";
-import { Telegraf } from "telegraf";
+import { Markup, Telegraf } from "telegraf";
 import * as admin from "firebase-admin";
 import {
   handlePhotoSent,
@@ -54,6 +54,14 @@ bot.command("zensters", (ctx) => handleGetMindfulnessRanking(ctx, db));
 bot.command("bezen", (ctx) => handleBeZen(ctx, db));
 
 bot.command("bing_roast", (ctx) => handleBingRoast(ctx, db));
+
+const WEB_APP_URL = "https://megagoals.vercel.app/";
+bot.command("inlinekb", (ctx) =>
+  ctx.reply(
+    "Launch mini app from inline keyboard!",
+    Markup.inlineKeyboard([Markup.button.webApp("Launch", WEB_APP_URL)]),
+  ),
+);
 
 // Express routes
 app.get("/", (_req, res) => {
