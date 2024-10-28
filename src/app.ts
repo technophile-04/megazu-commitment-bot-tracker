@@ -57,10 +57,14 @@ bot.command("bing_roast", (ctx) => handleBingRoast(ctx, db));
 
 const WEB_APP_URL = "https://megagoals.vercel.app/";
 bot.command("inlinekb", (ctx) =>
-  ctx.reply(
-    "Launch mini app from inline keyboard!",
-    Markup.inlineKeyboard([Markup.button.webApp("Launch", WEB_APP_URL)]),
-  ),
+  ctx.reply("Launch mini app from inline keyboard!", {
+    reply_markup: {
+      inline_keyboard: [
+        [Markup.button.url("Launch Mini App", WEB_APP_URL)],
+        [Markup.button.url("Launch Mini App", `${WEB_APP_URL}/activity`)],
+      ],
+    },
+  }),
 );
 
 // Express routes
