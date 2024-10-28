@@ -57,32 +57,58 @@ bot.command("bezen", (ctx) => handleBeZen(ctx, db));
 bot.command("bing_roast", (ctx) => handleBingRoast(ctx, db));
 
 const WEB_APP_URL = "https://megagoals.vercel.app/";
-bot.command("inlinekb", (ctx) =>
-  ctx.reply("Launch mini app from inline keyboard!", {
-    reply_markup: {
-      inline_keyboard: [
-        [Markup.button.webApp("Launch Mini App", WEB_APP_URL)],
-        [Markup.button.webApp("Launch Mini App", `${WEB_APP_URL}/activity`)],
-      ],
-    },
-  }),
-);
-bot.command("link", (ctx) =>
-  /*
-		Go to @Botfather and create a new app for your bot first, using /newapp
-		Then modify this link appropriately.
-	
-		startapp is optional.
-		If provided, it will be passed as start_param in initData
-		and as ?tgWebAppStartParam=$command in the Web App URL
-	*/
-  ctx.reply(
-    link(
-      "Launch",
-      "https://t.me/megazu_commitment_tracker_bot/MegaCommitments/activity?startapp=start&mode=compact",
-    ),
-  ),
-);
+bot.command("inlinekb", async (ctx) => {
+  try {
+    // Check if the chat is a group
+    const isGroup =
+      ctx.chat?.type === "group" || ctx.chat?.type === "supergroup";
+
+    await ctx.reply("Launch mini app:", {
+      reply_markup: {
+        inline_keyboard: [
+          [
+            Markup.button.webApp(
+              "Open Activity Tracker",
+              `${WEB_APP_URL}/activity`,
+            ),
+          ],
+        ],
+      },
+      // When in groups, reply to the command message for better context
+      ...(isGroup && {
+        reply_parameters: { message_id: ctx.message.message_id },
+      }),
+    });
+  } catch (error) {
+    console.error("Error sending inline keyboard:", error);
+    ctx.reply("Sorry, there was an error launching the web app.");
+  }
+});
+
+bot.command("link", async (ctx) => {
+  try {
+    const botUsername = (await bot.telegram.getMe()).username;
+    // Format: tg://resolve?domain=<botUsername>&appname=<appName>&startapp=<startParameter>
+    const miniAppLink = `tg://resolve?domain=${botUsername}&appname=MegaCommitments&startapp=activity`;
+
+    await ctx.reply("📊 Open Activity Tracker:", {
+      reply_markup: {
+        inline_keyboard: [
+          [
+            {
+              text: "Track Activities",
+              url: miniAppLink,
+            },
+          ],
+        ],
+      },
+      reply_parameters: { message_id: ctx.message.message_id },
+    });
+  } catch (error) {
+    console.error("Error generating mini app link:", error);
+    ctx.reply("Sorry, there was an error generating the link.");
+  }
+});
 
 // Express routes
 app.get("/", (_req, res) => {
