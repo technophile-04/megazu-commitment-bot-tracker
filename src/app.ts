@@ -63,22 +63,12 @@ bot.command("inlinekb", async (ctx) => {
     const isGroup =
       ctx.chat?.type === "group" || ctx.chat?.type === "supergroup";
 
-    await ctx.reply("Launch mini app:", {
-      reply_markup: {
-        inline_keyboard: [
-          [
-            Markup.button.webApp(
-              "Open Activity Tracker",
-              `${WEB_APP_URL}/activity`,
-            ),
-          ],
-        ],
-      },
-      // When in groups, reply to the command message for better context
-      ...(isGroup && {
-        reply_parameters: { message_id: ctx.message.message_id },
-      }),
-    });
+    ctx.reply(
+      "Launch mini app from inline keyboard!",
+      Markup.inlineKeyboard([
+        Markup.button.webApp("Launch", `${WEB_APP_URL}/activity`),
+      ]),
+    );
   } catch (error) {
     console.error("Error sending inline keyboard:", error);
     ctx.reply("Sorry, there was an error launching the web app.");
