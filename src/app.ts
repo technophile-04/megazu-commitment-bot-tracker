@@ -60,8 +60,8 @@ bot.command("inlinekb", (ctx) =>
   ctx.reply("Launch mini app from inline keyboard!", {
     reply_markup: {
       inline_keyboard: [
-        [Markup.button.url("Launch Mini App", WEB_APP_URL)],
-        [Markup.button.url("Launch Mini App", `${WEB_APP_URL}/activity`)],
+        [Markup.button.webApp("Launch Mini App", WEB_APP_URL)],
+        [Markup.button.webApp("Launch Mini App", WEB_APP_URL)],
       ],
     },
   }),
