@@ -79,7 +79,7 @@ bot.command("link", (ctx) =>
   ctx.reply(
     link(
       "Launch",
-      "https://t.me/megazu_commitment_tracker_bot/MegaCommitments?startapp=start&mode=compact",
+      "https://t.me/megazu_commitment_tracker_bot/MegaCommitments/activity?startapp=start&mode=compact",
     ),
   ),
 );
