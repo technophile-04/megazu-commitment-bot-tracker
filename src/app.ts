@@ -10,6 +10,7 @@ import {
   handleBeZen,
   handleBingRoast,
 } from "./actions";
+import { link } from "telegraf/typings/format";
 
 dotenv.config();
 
@@ -65,6 +66,22 @@ bot.command("inlinekb", (ctx) =>
       ],
     },
   }),
+);
+bot.command("link", (ctx) =>
+  /*
+		Go to @Botfather and create a new app for your bot first, using /newapp
+		Then modify this link appropriately.
+	
+		startapp is optional.
+		If provided, it will be passed as start_param in initData
+		and as ?tgWebAppStartParam=$command in the Web App URL
+	*/
+  ctx.reply(
+    link(
+      "Launch",
+      "https://t.me/megazu_commitment_tracker_bot/MegaCommitments/activity",
+    ),
+  ),
 );
 
 // Express routes
