@@ -1,6 +1,6 @@
 import express from "express";
 import dotenv from "dotenv";
-import { Markup, Telegraf } from "telegraf";
+import { Telegraf } from "telegraf";
 import * as admin from "firebase-admin";
 import {
   handlePhotoSent,
@@ -10,7 +10,6 @@ import {
   handleBeZen,
   handleBingRoast,
 } from "./actions";
-import { link } from "telegraf/format";
 
 dotenv.config();
 
@@ -55,50 +54,6 @@ bot.command("zensters", (ctx) => handleGetMindfulnessRanking(ctx, db));
 bot.command("bezen", (ctx) => handleBeZen(ctx, db));
 
 bot.command("bing_roast", (ctx) => handleBingRoast(ctx, db));
-
-const WEB_APP_URL = "https://megagoals.vercel.app/";
-bot.command("inlinekb", async (ctx) => {
-  try {
-    // Check if the chat is a group
-    const isGroup =
-      ctx.chat?.type === "group" || ctx.chat?.type === "supergroup";
-
-    ctx.reply(
-      "Launch mini app from inline keyboard!",
-      Markup.inlineKeyboard([
-        Markup.button.webApp("Launch", `${WEB_APP_URL}/activity`),
-      ]),
-    );
-  } catch (error) {
-    console.error("Error sending inline keyboard:", error);
-    ctx.reply("Sorry, there was an error launching the web app.");
-  }
-});
-
-bot.command("link", async (ctx) => {
-  try {
-    const botUsername = (await bot.telegram.getMe()).username;
-    // Format: tg://resolve?domain=<botUsername>&appname=<appName>&startapp=<startParameter>
-    const miniAppLink = `tg://resolve?domain=${botUsername}&appname=MegaCommitments&startapp=activity`;
-
-    await ctx.reply("📊 Open Activity Tracker:", {
-      reply_markup: {
-        inline_keyboard: [
-          [
-            {
-              text: "Track Activities",
-              url: miniAppLink,
-            },
-          ],
-        ],
-      },
-      reply_parameters: { message_id: ctx.message.message_id },
-    });
-  } catch (error) {
-    console.error("Error generating mini app link:", error);
-    ctx.reply("Sorry, there was an error generating the link.");
-  }
-});
 
 // Express routes
 app.get("/", (_req, res) => {
