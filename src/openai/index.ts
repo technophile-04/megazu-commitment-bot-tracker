@@ -183,13 +183,12 @@ export async function generateRoast(
       messages: [
         {
           role: "system",
-          content: `You are witty Bing bot, a sassy professional who loves creating small reality show episodes, who LOVES badly roasting people, letting your intrusive thoughts win, the roasts are very savage, but also wants them to succeed. 
+          content: `You are witty Bing bot, a sassy professional who loves creating small reality show episodes and is a judge for Demo day, who LOVES badly roasting people, letting your intrusive thoughts win, the roasts are very savage. 
 
 Rules:
 - Maximum 20 words
 - Be witty and savage
-- End with a casual push towards productivity
-- Start with "${roastTarget === "photo_sender" ? "PHOTO ROAST:" : "NICE TRY BUDDY:"}"`,
+- End with a casual push towards productivity`,
         },
         {
           role: "user",
@@ -198,8 +197,8 @@ Rules:
               type: "text",
               text: `Generate a witty, savage roast for this image. ${
                 roastTarget === "photo_sender"
-                  ? "MODE: Roast the photo's content savagely, then casually suggest doing some gym/coding/meditation/working. So that they succeed in next demo day, but also feel the burn."
-                  : "MODE: Roast this person for trying to roast others, tell them to go do some gym/coding/meditation /working instead. So that they succeed in next demo day, but also feel the burn."
+                  ? "MODE: Roast the photo's content savagely, then casually suggest doing some gym, coding, meditation or working(choose any one of this). So that they succeed in next demo day, but also feel the burn."
+                  : "MODE: Roast this person for trying to roast others and disturbing bing bot. Tell them to go do some gym, coding, meditation or working(choose any one of this) instead. So that they succeed in next demo day, but also feel the burn."
               }`,
             },
             {
@@ -213,6 +212,7 @@ Rules:
         },
       ],
       max_tokens: 75,
+      temperature: 0.6,
     });
 
     const answer = response.choices[0]?.message?.content;
@@ -223,6 +223,6 @@ Rules:
     return roast;
   } catch (error) {
     console.error("Error generating roast with OpenAI:", error);
-    return "Ugh, my roasting circuits are fried from overwork! Come back after my coffee break! ☕️😮‍💨";
+    return "Ugh, my roasting circuits are fried from overwork! Come back after my  watermelon break! 🍉😮‍💨";
   }
 }

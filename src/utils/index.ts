@@ -17,25 +17,43 @@ export function getBingBotReaction(
   roast: string,
 ): string {
   const photoRoastReactions = [
-    "*munches broccoli aggressively* ",
-    "*chomps broccoli while judging* ",
-    "*stress-eats broccoli* ",
-    "*takes an angry bite of broccoli* ",
-    "*clutches emotional support broccoli* ",
+    "*spits watermelon seeds in shock* ",
+    "*counts watermelon seeds to calm down* ",
+    "*flicks watermelon seeds in disapproval* ",
+    "*makes watermelon seed rain of judgment* ",
+    "*stress-arranges watermelon seeds in patterns* ",
+    "*clutches watermelon like a therapy pet* ",
+    "*taps watermelon impatiently* ",
+    "*caresses watermelon judgmentally* ",
+    "*polishes watermelon with disappointed look* ",
+    "*hugs watermelon for emotional stability* ",
+    "*aggressively measures watermelon with eyes* ",
+    "*protectively shields watermelon from bad photos* ",
+    "*squints through watermelon slice at photo* ",
+    "*uses watermelon as judge's gavel* ",
   ];
 
   const roasterCalloutReactions = [
-    "*spits watermelon seeds disappointedly* ",
-    "*drops watermelon in disappointment* ",
-    "*sadly puts down watermelon* ",
-    "*throws watermelon rind in disgust* ",
-    "*stress-eats watermelon* ",
+    "*sighs and drops watermelon in despair* ",
+    "*sadly spits watermelon seeds at roasting attempt* ",
+    "*stares disappointedly through watermelon slice* ",
+    "*slowly slides down wall with watermelon* ",
+    "*tiredly counts watermelon seeds instead of your jokes* ",
+    "*can't even finish watermelon from disappointment* ",
+    "*watermelon literally wilts from your attempt* ",
+    "*holds watermelon like disappointed parent* ",
+    "*needs new watermelon after seeing this* ",
+    "*watches watermelon roll away like your career* ",
+    "*stress-organizes watermelon seeds* ",
+    "*shields watermelon's eyes from this attempt* ",
+    "*watermelon facepalm* ",
+    "*disappointedly offers you watermelon therapy* ",
+    "*questions life with emotional support watermelon* ",
   ];
 
   const reactions = isPhotoRoast
     ? photoRoastReactions
     : roasterCalloutReactions;
-  const emoji = isPhotoRoast ? "🥦" : "🍉";
 
-  return `${reactions[Math.floor(Math.random() * reactions.length)]}\n\n${roast} ${emoji}`;
+  return `${reactions[Math.floor(Math.random() * reactions.length)]}\n\n${roast}`;
 }
