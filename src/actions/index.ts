@@ -372,8 +372,8 @@ export async function handleBingRoast(ctx: Context, db: firestore.Firestore) {
     });
     const photoBuffer = Buffer.from(response.data, "binary");
 
-    // 50% chance to roast the photo, 50% chance to roast the person trying to roast
-    const roastTarget = Math.random() < 0.5 ? "photo_sender" : "command_sender";
+    // 80% chance to roast the photo, 20% chance to roast the person trying to roast
+    const roastTarget = Math.random() < 0.8 ? "photo_sender" : "command_sender";
     const roast = await generateRoast(photoBuffer, roastTarget);
 
     // Update roast count
