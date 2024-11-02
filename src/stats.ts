@@ -39,6 +39,7 @@ interface BotStats {
     fitness: number;
     shipping: number;
     mindfulness: number;
+    roasts: number;
   };
   dailyStats: Map<
     string,
@@ -46,6 +47,7 @@ interface BotStats {
       fitness: number;
       shipping: number;
       mindfulness: number;
+      roasts: number;
     }
   >;
   monthlyStats: Map<
@@ -54,8 +56,18 @@ interface BotStats {
       fitness: number;
       shipping: number;
       mindfulness: number;
+      roasts: number;
     }
   >;
+  roastStats: {
+    totalRoasts: number;
+    topRoasters: Array<{
+      username: string;
+      roastCount: number;
+    }>;
+    dailyRoastCounts: Map<string, number>;
+    monthlyRoastCounts: Map<string, number>;
+  };
 }
 
 async function analyzeBotStats() {
@@ -71,9 +83,16 @@ async function analyzeBotStats() {
       fitness: 0,
       shipping: 0,
       mindfulness: 0,
+      roasts: 0,
     },
     dailyStats: new Map(),
     monthlyStats: new Map(),
+    roastStats: {
+      totalRoasts: 0,
+      topRoasters: [],
+      dailyRoastCounts: new Map(),
+      monthlyRoastCounts: new Map(),
+    },
   };
 
   try {
@@ -84,6 +103,7 @@ async function analyzeBotStats() {
       if (!usersSnapshot.empty) {
         stats.totalGroups++;
         let groupHasActivity = false;
+        let userRoastCounts: { [key: string]: number } = {};
 
         for (const userDoc of usersSnapshot.docs) {
           const userData = userDoc.data();
@@ -92,6 +112,7 @@ async function analyzeBotStats() {
           const fitnessCount = userData.fitnessCount || 0;
           const shippingCount = userData.shippingCount || 0;
           const mindfulnessCount = userData.mindfulnessCount || 0;
+          let totalRoasts = 0;
 
           if (fitnessCount + shippingCount + mindfulnessCount > 0) {
             stats.activeUsers++;
@@ -103,22 +124,38 @@ async function analyzeBotStats() {
           stats.activities.shipping += shippingCount;
           stats.activities.mindfulness += mindfulnessCount;
 
-          // Process daily data
+          // Process daily data including roasts
           if (userData.dailyData) {
             Object.entries(userData.dailyData).forEach(
               ([date, data]: [string, any]) => {
-                // Daily stats
+                // Initialize daily stats if not exists
                 if (!stats.dailyStats.has(date)) {
                   stats.dailyStats.set(date, {
                     fitness: 0,
                     shipping: 0,
                     mindfulness: 0,
+                    roasts: 0,
                   });
                 }
                 const dailyStats = stats.dailyStats.get(date)!;
+
+                // Track regular activities
                 if (data.gymPhotoUploaded) dailyStats.fitness++;
                 if (data.shippingPhotoUploaded) dailyStats.shipping++;
                 if (data.mindfulnessPhotoUploaded) dailyStats.mindfulness++;
+
+                // Track roasts
+                const dailyRoasts = data.roastCount || 0;
+                dailyStats.roasts += dailyRoasts;
+                totalRoasts += dailyRoasts;
+
+                // Update daily roast counts
+                const currentDailyRoasts =
+                  stats.roastStats.dailyRoastCounts.get(date) || 0;
+                stats.roastStats.dailyRoastCounts.set(
+                  date,
+                  currentDailyRoasts + dailyRoasts,
+                );
 
                 // Monthly stats
                 const monthKey = date.substring(0, 7); // YYYY-MM
@@ -127,22 +164,50 @@ async function analyzeBotStats() {
                     fitness: 0,
                     shipping: 0,
                     mindfulness: 0,
+                    roasts: 0,
                   });
                 }
                 const monthlyStats = stats.monthlyStats.get(monthKey)!;
                 if (data.gymPhotoUploaded) monthlyStats.fitness++;
                 if (data.shippingPhotoUploaded) monthlyStats.shipping++;
                 if (data.mindfulnessPhotoUploaded) monthlyStats.mindfulness++;
+                monthlyStats.roasts += dailyRoasts;
+
+                // Update monthly roast counts
+                const currentMonthlyRoasts =
+                  stats.roastStats.monthlyRoastCounts.get(monthKey) || 0;
+                stats.roastStats.monthlyRoastCounts.set(
+                  monthKey,
+                  currentMonthlyRoasts + dailyRoasts,
+                );
               },
             );
+          }
+
+          // Track total roasts for user
+          if (totalRoasts > 0) {
+            userRoastCounts[userData.username || `User${userDoc.id}`] =
+              totalRoasts;
           }
         }
 
         if (groupHasActivity) {
           stats.activeGroups++;
         }
+
+        // Update top roasters
+        stats.roastStats.topRoasters = Object.entries(userRoastCounts)
+          .map(([username, count]) => ({ username, roastCount: count }))
+          .sort((a, b) => b.roastCount - a.roastCount)
+          .slice(0, 10);
       }
     }
+
+    // Calculate total roasts
+    stats.activities.roasts = Array.from(
+      stats.roastStats.dailyRoastCounts.values(),
+    ).reduce((sum, count) => sum + count, 0);
+    stats.roastStats.totalRoasts = stats.activities.roasts;
 
     // Print Overall Statistics
     console.log("\n📊 Overall Bot Statistics");
@@ -163,24 +228,41 @@ async function analyzeBotStats() {
     console.log(`Fitness Photos: ${stats.activities.fitness}`);
     console.log(`Shipping Updates: ${stats.activities.shipping}`);
     console.log(`Mindfulness Sessions: ${stats.activities.mindfulness}`);
+    console.log(`Roasts: ${stats.activities.roasts}`);
     const totalActivities =
       stats.activities.fitness +
       stats.activities.shipping +
-      stats.activities.mindfulness;
+      stats.activities.mindfulness +
+      stats.activities.roasts;
     console.log(`Total Activities: ${totalActivities}`);
 
+    // Roast Statistics
+    console.log("\n🔥 Roast Statistics");
+    console.log("-----------------");
+    console.log(`Total Roasts: ${stats.roastStats.totalRoasts}`);
+    console.log("\nTop Roasters:");
+    stats.roastStats.topRoasters.forEach((roaster, index) => {
+      console.log(
+        `${index + 1}. ${roaster.username}: ${roaster.roastCount} roasts`,
+      );
+    });
+
     // Monthly Statistics
-    console.log("\n📅 Monthly Activity Breakdown");
-    console.log("---------------------------");
+    console.log("\n📅 Monthly Activity Breakdown (Including Roasts)");
+    console.log("------------------------------------------");
     Array.from(stats.monthlyStats.entries())
       .sort((a, b) => b[0].localeCompare(a[0])) // Sort by date descending
       .forEach(([month, activities]) => {
         const total =
-          activities.fitness + activities.shipping + activities.mindfulness;
+          activities.fitness +
+          activities.shipping +
+          activities.mindfulness +
+          activities.roasts;
         console.log(`\n${month}:`);
         console.log(`• Fitness: ${activities.fitness}`);
         console.log(`• Shipping: ${activities.shipping}`);
         console.log(`• Mindfulness: ${activities.mindfulness}`);
+        console.log(`• Roasts: ${activities.roasts}`);
         console.log(`• Total: ${total}`);
       });
 
@@ -196,6 +278,9 @@ async function analyzeBotStats() {
     console.log(
       `Mindfulness: ${((stats.activities.mindfulness / totalActivities) * 100).toFixed(1)}%`,
     );
+    console.log(
+      `Roasts: ${((stats.activities.roasts / totalActivities) * 100).toFixed(1)}%`,
+    );
 
     // Average Activities
     console.log("\n📈 Average Metrics");
@@ -208,6 +293,9 @@ async function analyzeBotStats() {
     );
     console.log(
       `Users per Group: ${(stats.totalUsers / stats.totalGroups).toFixed(1)}`,
+    );
+    console.log(
+      `Roasts per Active User: ${(stats.activities.roasts / stats.activeUsers).toFixed(1)}`,
     );
   } catch (error) {
     console.error("Error analyzing bot stats:", error);

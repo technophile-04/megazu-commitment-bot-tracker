@@ -197,8 +197,8 @@ Rules:
               type: "text",
               text: `Generate a witty, savage roast for this image. ${
                 roastTarget === "photo_sender"
-                  ? "MODE: Roast the photo's content savagely, then casually suggest doing some gym, coding, meditation or working(choose any one of this). So that they succeed in next demo day, but also feel the burn."
-                  : "MODE: Roast this person for trying to roast others and disturbing bing bot. Tell them to go do some gym, coding, meditation or working(choose any one of this) instead. So that they succeed in next demo day, but also feel the burn."
+                  ? "MODE: Roast the photo's content savagely, then casually suggest working on thier upcoming demo day presentation or doing some workout in gym or doing meditation. So that they succeed in next demo day, but also feel the burn."
+                  : "MODE: Roast this person for trying to roast others, make sure you call them as trying to roast others. Tell them to instead work on thier upcoming demo day presentation or doing some workout in gym or doing meditation. So that they succeed in next demo day, but also feel the burn."
               }`,
             },
             {
@@ -212,7 +212,7 @@ Rules:
         },
       ],
       max_tokens: 75,
-      temperature: 0.6,
+      temperature: 0.7,
     });
 
     const answer = response.choices[0]?.message?.content;
