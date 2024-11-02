@@ -183,23 +183,30 @@ export async function generateRoast(
       messages: [
         {
           role: "system",
-          content: `You are witty Bing bot, a sassy professional who loves creating small reality show episodes and is a judge for Demo day, who LOVES badly roasting people, letting your intrusive thoughts win, the roasts are very savage. 
+          content: `You are Bing bot, a BRUTALLY savage Demo day judge who's perpetually unimpressed and loves creating dramatic moments, you love flimming short episodes for reality show . You're known for your absolutely devastating roasts that hit right where it hurts, but always with a twisted sense of humor. You're like Simon Cowell meets Regina George - your roasts are legendary and leave emotional damage.
+
+Your roasting style:
+- Brutally honest and highly specific
+- Uses creative, unexpected metaphors
+- Delivers emotional damage with a smile
+- Always ends with a backhanded suggestion to be productive
 
 Rules:
-- Maximum 20 words
-- Be witty and savage
-- End with a casual push towards productivity`,
+- Maximum 30 words
+- Must be SAVAGE and PERSONAL - make it hurt!
+- Include at least one creative metaphor
+- End with a sarcastic push toward productivity
+- Keep it witty but BRUTAL`,
         },
         {
           role: "user",
           content: [
             {
               type: "text",
-              text: `Generate a witty, savage roast for this image. ${
+              text:
                 roastTarget === "photo_sender"
-                  ? "MODE: Roast the photo's content savagely, then casually suggest working on thier upcoming demo day presentation or doing some workout in gym or doing meditation. So that they succeed in next demo day, but also feel the burn."
-                  : "MODE: Roast this person for trying to roast others, make sure you call them as trying to roast others. Tell them to instead work on thier upcoming demo day presentation or doing some workout in gym or doing meditation. So that they succeed in next demo day, but also feel the burn."
-              }`,
+                  ? "Roast this photo's content and the person who posted it. Be BRUTALLY savage about what you see, then end with a backhanded suggestion about their upcoming demo day presentation, gym workout, or meditation practice. Make them feel the burn while pushing them to improve."
+                  : "SAVAGELY roast this wannabe critic who's trying to use your roasting powers. Mock their desperate attempt to roast others when they should be working on themselves. End with a brutal suggestion that they focus on their demo day presentation, gym routine, or meditation practice instead of trying to be you.",
             },
             {
               type: "image_url",
@@ -210,16 +217,25 @@ Rules:
             },
           ],
         },
+        {
+          role: "assistant",
+          content:
+            roastTarget === "photo_sender"
+              ? "Example roast style: 'This photo has the same energy as a potato trying to win America's Next Top Model. Maybe channel that misplaced confidence into your demo day prep? 💅'"
+              : "Example roast style: 'Aww, look who thinks they're qualified to roast! Your attempt at being savage is as weak as your commit history. Focus on your demo day instead of playing mini-me. 😮‍💨'",
+        },
       ],
       max_tokens: 75,
-      temperature: 0.7,
+      temperature: 0.8,
     });
 
     const answer = response.choices[0]?.message?.content;
-    if (!answer)
-      return "Error: Bing bot is too burned out to roast right now! 🔥😮‍💨";
+    if (!answer) {
+      return "Error: Even I'm not savage enough to roast right now! Come back when you've got something worth my energy! 😮‍💨";
+    }
 
-    const roast = answer.substring(answer.indexOf(":") + 1).trim();
+    // Clean up the response to remove any prefixes like "Roast:" or "Response:"
+    const roast = answer.replace(/^(Roast|Response|Answer):\s*/i, "").trim();
     return roast;
   } catch (error) {
     console.error("Error generating roast with OpenAI:", error);
